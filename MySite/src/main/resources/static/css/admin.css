@@ -1,0 +1,11 @@
+.t1 td,th{
+      border:1px solid grey;
+      font-size:14px;
+      }
+
+
+
+.t1{
+border:1px solid grey;
+border-collapse:collapse;
+}

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Администратор</title>
+    <link th:href="@{/css/admin.css}" type="text/css" rel="stylesheet" />
+</head>
+<body>
+
+<div id="templatemo_menu">
+    <ul>
+        <!--<li><a href="product/list.html" th:href="@{/product/list}>Home</a></li>-->
+        <li><a th:href="@{/home}">Дом</a></li>
+        <li class="last"><a th:href="@{/news}">Новости</a></li>
+    </ul>
+</div> <!-- end of templatemo_menu -->
+
+<form th:method="POST" th:action="@{/block}">
+    <lable for="person">Выберите человека </lable>
+<select  th:object="${person}" th:field="*{Username}" id="personBlocked">
+    <option th:each="person : ${people}" th:value="${person.getUsername()}" th:text="${person.getUsername()}"> </option>
+
+</select>
+
+    <input type="submit" value="Заблокировать пользователя" />
+
+</form>
+<br>
+<form th:method="POST" th:action="@{/unblock}">
+    <lable for="person">Выберите человека </lable>
+    <select  th:object="${person}" th:field="*{Username}" id="personUnblocked">
+        <option th:each="person : ${people}" th:value="${person.getUsername()}" th:text="${person.getUsername()}"> </option>
+
+    </select>
+
+    <input type="submit" value="Разблокировать пользователя" />
+
+</form>
+
+<br>
+
+<form th:method="POST" th:action="@{/pass}" th:object="${pass}" >
+<label for="pass">Пароль для регистрации:</label> <input type="text" id="pass"  class="required input_field" th:field="*{passwordReg}"/>
+    <input type="submit" value="OK" />
+
+</form>
+
+<br>
+<div class="container">
+    <h3>Залогиненные пользователи</h3>
+    <div th:each="user : ${peopleLogged}">
+        <p th:utext="${user}">user</p>
+    </div>
+</div>
+
+
+<table height="50">
+    <tr></tr>
+</table>
+
+<table class="t1" width="90%" align="center" cellpadding="10">
+
+    <thead>
+    <tr> <th colspan="7">Пользователи</th> </tr>
+    <tr>
+        <td align="center"> ID </td>
+        <td align="center"> Ник </td>
+        <td align="center"> email </td>
+        <td align="center"> Имя </td>
+        <td align="center"> Фамилия </td>
+        <td align="center"> Дата рождения </td>
+        <td align="center"> Права </td>
+
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="person : ${people}">
+
+        <td th:text="${person.getId()}">Id</td>
+        <!--<td th:text="${person.getUsername()}">Username</td>-->
+        <td><a th:href="@{/user/{username}(username=${person.getUsername()})}" th:text="${person.getUsername()}" /></td>
+        <td th:text="${person.getEmail()}">Email</td>
+        <td th:text="${person.getName()}">Name</td>
+        <td th:text="${person.getSurname()}">Surnamee</td>
+        <td th:text="${person.getBirthdate()}">Bithdate</td>
+        <td th:text="${person.getRoles()}">Authorities</td>
+
+    </tr>
+    </tbody>
+</table>
+
+
+
+</body>
+</html>

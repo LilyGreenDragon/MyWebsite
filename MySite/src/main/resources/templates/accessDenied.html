@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html xmlns:th="http://thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Доступ запрещен</title>
+    <link th:href="@{/css/go.css}" type="text/css" rel="stylesheet" />
+</head>
+
+<body>
+
+<table width="400px" border="0" align="center" cellpadding="0" cellspacing="0" class="wr" >
+    <tr>
+        <td width="100%" align="center">
+            <div class="login-page">
+                <div class="form">
+
+                    <form class="login-form" id="formGo"  th:action="@{/}"  >
+                        <p class="messageNo">Доступ к этой странице запрещен</p>
+                        <br/> <br/><br/><br/>
+
+                        <button type="submit">Ok</button>
+
+                    </form>
+
+
+                </div>
+            </div>
+        </td>
+    </tr>
+</table>
+
+
+</body>
