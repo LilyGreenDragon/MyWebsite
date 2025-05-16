@@ -1,0 +1,178 @@
+
+	body{
+	margin-right:10px;
+	margin-left:10px;
+	background-color:#FFFFFF;
+	background-image:none;
+         	background-attachment:fixed;
+                 background-repeat: no-repeat;
+                 background-size: cover;
+
+	}
+
+	.photo {
+	  width: 86px;
+		
+	}
+
+	.middletxt
+	{
+	background-image:url(../images/middle_text.jpg);
+	background-repeat: no-repeat;
+    background-size: auto 259px;
+    background-position: center;
+	color:#33FF99;
+	width:488px;
+	height:259px;
+	}
+
+	.middletxtfirst
+    	{
+    	background-image:url(../images/middle_text.jpg);
+
+    	color:#33FF99;
+    	width:488px;
+    	height:259px;
+    	}
+
+	.but
+    	{
+    	width:190px;
+        height:34px;
+        background-color: transparent;
+            background-repeat: no-repeat;
+            border: none;
+            cursor: pointer;
+            overflow: hidden;
+            outline: none;
+    	color:#FFFFFF;
+    	font-family:Arial, Helvetica, sans-serif;
+    	font-size:12px;
+    	}
+
+
+.but2
+            	{
+            	width:100px;
+                        height:34px;
+                        background-color: transparent;
+                            background-repeat: no-repeat;
+                            border: none;
+                            cursor: pointer;
+                            overflow: hidden;
+                            outline: none;
+                    	color:#FFFFFF;
+                    	font-family:Arial, Helvetica, sans-serif;
+                    	font-size:12px;
+            	}
+	.menutxt
+	{
+	color:#FFFFFF;
+	font-family:Arial, Helvetica, sans-serif;
+	font-size:12px;
+	}
+	.menutxt1
+	{
+	color:#000000;
+	font-family:Arial, Helvetica, sans-serif;
+	font-size:12px;
+	text-decoration:none;
+	}
+	a.menutxt1:hover
+	{
+	color:#000000;
+	font-family:Arial, Helvetica, sans-serif;
+	font-size:12px;
+	text-decoration:none;
+	}
+	.bodytxt
+	{
+	color:#FFFFFF;
+	font-family:Arial, Helvetica, sans-serif;
+	font-size:12px;
+	text-align:justify;
+	}
+	.bodyhead
+	{
+	font-family:Arial, Helvetica, sans-serif;
+	color:#FFFFFF;
+	font-size:12px;
+	text-align:justify;
+	}
+	.href
+	{
+	text-decoration:none;
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size:11px;
+	color: #ffd800;
+	}
+	.wrap
+	{
+	 border: 1px solid #000000;
+	 background-color:#FFFFFF;
+
+	}
+
+	.footer
+	{
+		font-family:Arial, Helvetica, sans-serif;
+	font-size:11px;
+	color:#000000;text-decoration:none;
+	}
+	a.footer:hover
+	{
+	font-family: Arial, Helvetica, sans-serif;
+		font-size:11px;
+		color:#ff0000;
+		text-decoration:none;
+		outline: none;
+	}
+	.txtBox
+	{
+	padding-bottom: 1px solid #ff0000;
+	padding-top: 1px solid #ff0000;
+	padding-left: 1px solid #ff0000;
+	padding-right: 1px solid #ff0000;
+	height:15px;
+	width: 150px;
+	margin-top:5px;
+	color:#666666;
+	font-family:Verdana, Arial, Helvetica, sans-serif;
+	font-size:11px;
+	}
+
+.blokimg {
+	position: relative;
+	}
+	.overlay{
+	display: none;
+	height: auto;
+	left: -15%;
+	position: absolute;
+	top: -50%;
+	width: auto;
+	z-index: 999;
+	}
+	.overlay .overlay_container{
+	display: table-cell;
+	vertical-align: middle;
+	}
+	.overlay_container img{
+	background-color: #AB5;
+	padding: 10px;
+	-webkit-border-radius: 5px;
+	-moz-border-radius: 5px;
+	}
+	.overlay:target {
+	display: table;
+	}
+
+#img1 {
+  position: absolute;
+  bottom: 0px;
+  right: 0px;
+  width: 120px;
+  /*height: 60px;*/
+
+
+}

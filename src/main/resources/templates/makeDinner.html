@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:th="http://www.thymeleaf.org">
+<head>
+  <title>My Dinner</title>
+  <link rel="stylesheet" th:href="@{/styles.css}" />
+</head>
+<body>
+<h2>Make your Dinner!</h2>
+<!--<img th:src="@{/images/TacoCloud.png}"/>-->
+<form method="POST" th:action="@{/make}" th:object="${dinner}">
+  <div class="grid">
+    <div class="ingredient-group" id="soup">
+      <h3>Choose your soup:</h3>
+      <div th:each="element : ${soup}">
+        <input name="selected" type="checkbox" th:value="${element.id}"/>
+        <span th:text="${element.name}">ELEMENT</span><br/>
+      </div>
+    </div>
+    <div class="ingredient-group" id="dish">
+      <h3>Choose your dish:</h3>
+      <div th:each="element : ${dish}">
+        <input name="selected" type="checkbox" th:value="${element.id}"/>
+        <span th:text="${element.name}">ELEMENT</span><br/>
+      </div>
+    </div>
+    <div class="ingredient-group" id="garnish">
+      <h3>Choose your garnish:</h3>
+      <div th:each="element : ${garnish}">
+        <input name="selected" type="checkbox" th:value="${element.id}"/>
+        <span th:text="${element.name}">ELEMENT</span><br/>
+      </div>
+    </div>
+    <div class="ingredient-group" id="sauce">
+      <h3>Choose your sauce:</h3>
+      <div th:each="element : ${sauce}">
+        <input name="selected" type="checkbox" th:value="${element.id}"/>
+        <span th:text="${element.name}">ELEMENT</span><br/>
+      </div>
+    </div>
+
+    </div>
+  </div>
+  <div>
+    <h3>Name your dinner:</h3>
+    <input type="text" th:field="*{name}"/>
+    <span class="validationError"
+          th:if="${#fields.hasErrors('name')}"
+          th:errors="*{name}">name Error</span>
+    <br/>
+    <button type="submit">Submit your Dinner</button>
+  </div>
+</form>
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://thymeleaf.org">
+<head>
+  <meta  content="text/html; charset=utf-8" />
+  <title>Кабинетик</title>
+  <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+  <link th:href="@{/css/admin.css}" type="text/css" rel="stylesheet" />
+  <link th:href="@{/css/templatemo_style.css}" type="text/css" rel="stylesheet" />
+</head>
+
+<body>
+
+<div id="templatemo_wrapper_admin">
+  <div id="templatmeo_header_admin">
+
+    <div id="site_title">
+      <h1><a th:href="@{/home}"></a></h1>
+    </div>
+
+    <div id="templatemo_menu">
+      <ul>
+        <!--<li><a th:href="@{/home}">Дом</a></li>-->
+        <li class="last"><a th:href="@{/admin/admin}">Администратор</a></li>
+      </ul>
+    </div> <!-- end of templatemo_menu -->
+  </div> <!-- end of header -->
+
+
+  <div id="templatemo_main_admin">
+
+    <div class="content_box_admin">
+
+      <div class="container">
+        <p th:text="${person}"></p>
+      </div>
+      <br>
+
+      <div th:unless="${person.username == 'Tony'}">
+        <form id="formBlock" accept-charset="UTF-8" th:method="POST" th:action="@{/admin/block}" th:object="${person}">
+          <input type="hidden" th:field="*{username}" />
+          <input type="button" id="Block" onclick="sweetAlert(this)" value="Заблокировать пользователя" />
+        </form>
+        <br>
+        <form id="formUser" accept-charset="UTF-8" th:method="POST" th:action="@{/admin/makeUser}" th:object="${person}">
+          <input type="hidden" th:field="*{username}" />
+          <input type="button" id="User" onclick="sweetAlert(this)" value="Разблокировать пользователя или убрать права администратора" />
+        </form>
+        <br>
+        <form id="formDelete" accept-charset="UTF-8" th:method="DELETE" th:action="@{/admin/delete}" th:object="${person}">
+          <input type="hidden" th:field="*{username}" />
+          <input type="button" id="Delete" onclick="sweetAlert(this)" value="Удалить пользователя" />
+        </form>
+        <br>
+        <br>
+        <form id="formAdm" accept-charset="UTF-8" th:method="POST" th:action="@{/admin/makeAdm}" th:object="${person}">
+          <input type="hidden" th:field="*{username}" />
+          <input type="button" id="Adm" onclick="sweetAlert(this)" value="Сделать администратором" />
+        </form>
+
+      </div>
+
+      <script>
+        function sweetAlert(inputElement) {
+      const buttonId = inputElement.id;
+      let actionText, formId;
+      switch(buttonId) {
+              case 'Block':
+                  actionText = 'Вы хотите заблокировать пользователя?';
+                  formId = 'formBlock';
+                  break;
+
+              case 'User':
+                  actionText = 'Вы хотите разблокировать пользователя или убрать права администратора?';
+                  formId = 'formUser';
+                  break;
+
+              case 'Delete':
+                  actionText = 'Вы хотите удалить пользователя?';
+                  formId = 'formDelete';
+                  break;
+
+              case 'Adm':
+                  actionText = "Вы хотите сделать пользователя администратором?";
+                  formId = "formAdm";
+                  break;
+                  }
+        swal({
+        text: actionText,
+        buttons: ["Нет", "Да"],
+        dangerMode: true,
+      })
+      .then((willDo) => {
+        if (willDo) {
+          document.getElementById(formId).submit();
+        }
+      });
+      }
+
+
+      </script>
+
+
+      <div class="cleaner h80"></div>
+
+      <a href="#" class="gototop"></a>
+    </div>
+  </div>
+
+</div> <!-- end of warpper -->
+
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

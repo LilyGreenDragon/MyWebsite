@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>День рождения 2021год</title>
+    <link th:href="@{/css/modalWindow.css}" type="text/css" rel="stylesheet" />
+    <link th:href="@{/css/templatemo_style.css}" type="text/css" rel="stylesheet" />
+</head>
+<body>
+<div class="modalBackground">
+    <div class="modalActive">
+        <div class="modalClose">
+            <img src="/images/cross.png" />
+        </div>
+        <div class="modalWindow">
+            <div id="modal">
+                <img src = "" id = "modalImg" > </img> <br />
+            </div>
+            <img class = "arrow" src = "/images/left_arrow.png"   onClick = "left_arrow()" />
+            <img class = "arrow" src = "/images/right_arrow.png"  onClick = "right_arrow()" />
+
+        </div>
+    </div>
+</div>
+
+<span id="top"></span>
+<div id="templatemo_wrapper_photo">
+    <div id="templatmeo_header_photo">
+
+        <div id="site_title">
+            <h1><a th:href="@{/home}"></a></h1>
+        </div>
+
+        <div id="templatemo_menu">
+            <ul>
+
+                <li class="last"><a th:href="@{/myPage}">Кабинетик</a></li>
+            </ul>
+        </div> <!-- end of templatemo_menu -->
+    </div> <!-- end of header -->
+
+    <div id="templatemo_main_photo">
+
+        <div id="services" class="content_top"></div>
+        <div class="content_box_photo">
+            <div class="content_title content_contactus"></div>
+
+            <h2>День рождения 2021год</h2>
+            <div class="cleaner"></div>
+
+            <div id="galleryv">
+                <ul>
+                    <li class="float_l"><span></span><img onclick="modalWindow(this.src)" src="images/holiday/dr2021/1.jpg" alt="Image 1" /></a></li>
+                    <li class="float_l"><span></span><img onclick="modalWindow(this.src)" src="images/holiday/dr2021/2.jpg" alt="Image 2" /></a></li>
+                    <li class="float_r"><span></span><img onclick="modalWindow(this.src)" src="images/holiday/dr2021/3.jpg" alt="Image 3" /></a></li>
+                    <li class="float_l"><span></span><img onclick="modalWindow(this.src)" src="images/holiday/dr2021/4.jpg" alt="Image 4" /></a></li>
+                    <li class="float_l"><span></span><img onclick="modalWindow(this.src)" src="images/holiday/dr2021/5.jpg" alt="Image 5" /></a></li>
+                    <li class="float_r"><span></span><img onclick="modalWindow(this.src)" src="images/holiday/dr2021/6.jpg" alt="Image 6" /></a></li>
+                </ul>
+            </div>
+
+            <div class="cleaner h50"></div>
+            <div class="cleaner"></div>
+            <a href="#" class="gototop">Наверх</a>
+
+        </div> <!-- end of content_box -->
+    </div> <!-- end of templatemo_main -->
+</div><!-- end of warpper -->
+
+<script type="text/javascript" src="/js/modalWindow.js"></script>
+</body>
+</html>

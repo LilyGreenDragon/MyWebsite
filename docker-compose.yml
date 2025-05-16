@@ -1,0 +1,24 @@
+
+
+
+version: '3.8'
+
+services:
+  mysite:
+    image: mysite
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8090:8080"
+    networks:
+      - mysite-net
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysqldb:3306/bootdb
+      SPRING_DATASOURCE_PASSWORD: 14789
+    volumes:
+      - /home/karina/ProgJava/imagecab:/app/imagecab:rw
+
+networks:
+  mysite-net:

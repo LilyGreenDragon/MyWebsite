@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://thymeleaf.org">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>Регистрация</title>
+<link th:href="@{/css/go.css}" type="text/css" rel="stylesheet" />
+</head>
+
+<body>
+
+<table width="400px" border="0" align="center" cellpadding="0" cellspacing="0" class="wr" >
+<tr>
+<td width="100%" align="center">
+<div class="login-page">
+  <div class="form">
+
+    <form class="login-form" id="formGo"  th:method="POST" th:action="@{/login}" th:object="${loginDTO}" >
+      <input type="text" placeholder="username" th:field="*{username}" id="nameGo" maxlength="50"/>
+      <div style="color:orange; font-size:12px" th:if="${#fields.hasErrors('username')}" th:errors="*{username}">Name error</div>
+      <input type="password" placeholder="password" th:field="*{password}" id="passwordGo" maxlength="50"/>
+      <div style="color:orange; font-size:12px" th:if="${#fields.hasErrors('password')}" th:errors="*{password}">Name error</div>
+      <!--<div th:if="${param.error}" style="color:red"> Неправильное имя или пароль</div>-->
+      <div th:if="${error!= null}" style="color:red" class="alert alert-danger" th:utext="${session[SPRING_SECURITY_LAST_EXCEPTION]}">error</div>
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+      <button type="submit">login</button>
+      <p class="message">Not registered? <a href="/register">Create an account</a></p>
+
+    </form>
+
+  </div>
+</div>
+</td>
+</tr>
+
+</table>
+
+
+</body>

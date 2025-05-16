@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://thymeleaf.org">
+<head>
+
+    <meta name="viewport" >
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Видео</title>
+    <link th:href="@{/css/modalWindowNew.css}" type="text/css" rel="stylesheet" />
+    <link th:href="@{/css/templatemo_style.css}" type="text/css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+
+</head>
+<body>
+
+<span id="top"></span>
+<div id="templatemo_wrapper_photo">
+    <div id="templatmeo_header_photo">
+
+        <div id="site_title">
+            <h1><a th:href="@{/home}"></a></h1>
+        </div>
+
+        <div id="templatemo_menu">
+            <ul>
+                <li class="last"><a th:href="@{/photo}">Фото</a></li>
+                <li class="last"><a th:href="@{/myPage}">Кабинетик</a></li>
+            </ul>
+        </div> <!-- end of templatemo_menu -->
+    </div> <!-- end of header -->
+
+    <div id="templatemo_main_photo">
+
+        <div id="services" class="content_top"></div>
+        <div class="content_box_photo">
+            <div class="content_title content_contactus"></div>
+
+            <h2>Видео</h2>
+            <div class="cleaner"></div>
+
+            <div id="gallerygv">
+                <ul class="video-gallery">
+                    <li class="video-item" data-video-src="/images/video/1.mp4" data-poster="/images/video/1.jpg">
+                        <img src="/images/video/1.jpg" alt="Видео 1" class="video-thumbnail">
+                        <div class="play-icon">▶</div>
+                    </li>
+                    <li class="video-item" data-video-src="/images/video/2.mp4" data-poster="/images/video/2.jpg">
+                        <img src="/images/video/2.jpg" alt="Видео 2" class="video-thumbnail">
+                        <div class="play-icon">▶</div>
+                    </li>
+                    <li class="video-item" data-video-src="/images/video/3.mp4" data-poster="/images/video/3.jpg">
+                        <img src="/images/video/3.jpg" alt="Видео 3" class="video-thumbnail">
+                        <div class="play-icon">▶</div>
+                    </li>
+                    <!-- Другие видео элементы -->
+                </ul>
+            </div>
+
+            <!-- Модальное окно для видео -->
+            <div id="videoModal">
+                <div class="modal-content">
+                    <video id="modalVideo" playsinline controls></video>
+                    <button class="close-btn">&times;</button>
+                </div>
+            </div>
+
+            <div class="cleaner h50"></div>
+            <div class="cleaner"></div>
+            <a href="#" class="gototop">Наверх</a>
+
+        </div> <!-- end of content_box -->
+    </div> <!-- end of templatemo_main -->
+</div><!-- end of warpper -->
+
+<script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+<script type="text/javascript" src="/js/modalWindowVideoNew.js"></script>
+
+
+</body>
+</html>

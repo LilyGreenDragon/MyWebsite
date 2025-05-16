@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://thymeleaf.org">
+<head>
+    <meta  content="text/html; charset=utf-8" />
+    <title>Кабинетик</title>
+    <link th:href="@{/css/admin.css}" type="text/css" rel="stylesheet" />
+    <link th:href="@{/css/templatemo_style.css}" type="text/css" rel="stylesheet" />
+</head>
+
+<body>
+
+<div id="templatemo_wrapper_admin">
+    <div id="templatmeo_header_admin">
+
+        <div id="site_title">
+            <h1><a th:href="@{/home}"></a></h1>
+        </div>
+    </div> <!-- end of header -->
+
+
+    <div id="templatemo_main_admin">
+
+        <div class="content_box_admin">
+            <div>
+            <form th:method="POST" th:action="@{admin/pass}" th:object="${pass}" >
+                <label for="pass" >Пароль для регистрации:</label> <input type="text" id="pass"  class="required input_field" th:field="*{passwordReg}"/>
+                <input type="submit" value="OK" />
+            </form>
+            </div>
+            <br>
+            <!--<div class="container">
+                <h3>Залогиненные пользователи</h3>
+                <div th:each="user : ${peopleLogged}">
+                    <p th:utext="${user}">user</p>
+                </div>
+            </div>-->
+
+            <select id="userFilter" onchange="applyFilters()">
+                <option value="all">Все пользователи</option>
+                <option value="logged">Только онлайн</option>
+            </select>
+
+            <select id="roleFilter" onchange="applyFilters()">
+                <option value="all">Все роли</option>
+                <!-- Опции будут добавлены динамически -->
+            </select>
+
+            <br>
+            <br>
+
+            <table class="t1" >
+                <thead>
+                <tr> <th colspan="7">Пользователи</th> </tr>
+                <tr>
+                    <td > ID </td>
+                    <td > Ник </td>
+                    <td > Email </td>
+                    <td > Имя </td>
+                    <td > Фамилия </td>
+                    <td > Дата рождения </td>
+                    <td > Роль </td>
+                </tr>
+                </thead>
+                <!--<tbody>
+                <tr th:each="person : ${people}">
+                    <td th:text="${person.getId()}">Id</td>
+                    <td><a th:href="@{/admin/user/{username}(username=${person.getUsername()})}" th:text="${person.getUsername()}" /></td>
+                    <td th:text="${person.getEmail()}">Email</td>
+                    <td th:text="${person.getName()}">Name</td>
+                    <td th:text="${person.getSurname()}">Surnamee</td>
+                    <td th:text="${person.getBirthdate()}">Bithdate</td>
+                    <td th:text="${person.getRoles().getName()}">Authorities</td>
+                </tr>
+                </tbody>-->
+                <tbody id="userTableBody">
+                <!-- Данные будут рендериться JavaScript -->
+                </tbody>
+            </table>
+
+            <script th:inline="javascript">
+                /*<![CDATA[*/
+                // Получаем данные из модели Thymeleaf
+                const allUsers = /*[[${people}]]*/ [];
+                const loggedUsers = /*[[${peopleLogged}]]*/ [];
+                const rolesData = /*[[${rolesMap}]]*/ [];
+
+                 // Инициализация при загрузке страницы
+                document.addEventListener('DOMContentLoaded', function() {
+                    // Заполняем select ролями из имеющихся данных
+                    const roleFilter = document.getElementById("roleFilter");
+                    const uniqueRoles = new Set(Object.values(rolesData));
+
+                    uniqueRoles.forEach(role => {
+                        const option = document.createElement("option");
+                        option.value = role;
+                        option.textContent = role;
+                        roleFilter.appendChild(option);
+                    });
+
+                    applyFilters(); // Первоначальная загрузка данных
+                });
+
+                function applyFilters() {
+                    const filterType = document.getElementById("userFilter").value;
+                    const roleFilter = document.getElementById("roleFilter").value;
+
+                    // Первый фильтр: все или только онлайн
+                    let filteredUsers = filterType === 'logged' ? loggedUsers : allUsers;
+
+                    // Второй фильтр: по роли
+                    if (roleFilter !== 'all') {
+                        filteredUsers = filteredUsers.filter(person =>
+                            rolesData[person.id] === roleFilter
+                        );
+                    }
+
+                    renderUsers(filteredUsers);
+                }
+
+                function renderUsers(users) {
+                    const tableBody = document.getElementById("userTableBody");
+                    tableBody.innerHTML = "";
+
+                    users.forEach(person => {
+                        const row = document.createElement("tr");
+                        row.innerHTML = `
+                            <td >${person.id}</td>
+                            <td ><a href="/admin/user/${person.username}">${person.username}</a></td>
+                            <td >${person.email}</td>
+                            <td >${person.name}</td>
+                            <td >${person.surname}</td>
+                            <td >${person.birthdate}</td>
+                            <td >${rolesData[person.id]}</td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                }
+                /*]]>*/
+            </script>
+            <div class="cleaner h80"></div>
+
+            <a href="#" class="gototop"></a>
+        </div>
+    </div>
+
+</div> <!-- end of warpper -->
+
+</body>
+</html>
+
+
+
+
+
+
+
+
+

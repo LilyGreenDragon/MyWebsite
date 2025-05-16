@@ -1,0 +1,1 @@
+A Java Spring Boot person web application (REST APIs, Spring Data JPA, Spring MVC, Maven, Spring Dev Tools, Lombok, Postman, Thymeleaf, MySQL database) for family using.

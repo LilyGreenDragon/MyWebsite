@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://thymeleaf.org">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"></meta>
+  <title>Фотография</title>
+  <link th:href="@{/css/icropper.css}" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="/js/icropper.js"></script>
+  <link th:href="@{/css/templatemo_style.css}" type="text/css" rel="stylesheet" />
+ <!-- <link href="../static/css/icropper.css" rel="stylesheet"/>-->
+  <!-- <script type="text/javascript" src="../static/js/icropper.js"></script>-->
+  <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+  <style type="text/css">
+
+        #cropperContainer {
+            float: left;
+        }
+        #previews {
+            float: left;
+            margin-left: 0px;
+        }
+        #previewSmall {
+            margin: 40px;
+            width: 150px;
+            height: 150px;
+            border: 1px solid gray;
+        }
+        #previewBig {
+            margin: 10px 40px;
+            width: 150px;
+            height: 150px;
+            display:none;
+        }
+        .icropper img {
+            max-width: 450px;
+        }
+        #fileInput {
+    	display:none;
+        }
+
+         .button {
+         //float: left;
+         margin: 8px 0px 8px 40px;
+         background: #e1dc5e; color: #000; cursor: pointer; border: 1px solid #c9c447; padding: 7px 14px; width: 200px;
+         }
+
+         p {
+         //margin: 0px 40px;
+         color: #8a861a;
+         line-height: 6px;
+         font-size: 13px;
+         text-indent: 40px;
+         //text-align: center;
+         }
+
+    </style>
+
+</head>
+
+<body>
+
+<span id="top"></span>
+<div id="templatemo_wrapper_photo">
+  <div id="templatmeo_header_photo">
+
+    <div id="site_title">
+      <h1><a th:href="@{/home}"></a></h1>
+    </div>
+
+    <div id="templatemo_menu">
+      <ul>
+        <!--<li><a href="product/list.html" th:href="@{/product/list}>Home</a></li>-->
+
+        <li class="last"><a th:href="@{/myPage}">Кабинет</a></li>
+      </ul>
+    </div> <!-- end of templatemo_menu -->
+  </div> <!-- end of header -->
+
+
+  <div id="templatemo_main_photo">
+
+    <div id="contactus" class="content_top"></div>
+    <div class="content_box_photo">
+      <div class="content_title content_contactus"></div>
+
+<form  id="formPhoto" th:method="POST" th:action="@{/myPage/photo}" >
+
+<div id="cropperContainer"></div>
+
+  <input type="hidden" id="x" name="x" value="" />
+  <input type="hidden" id="y" name="y" value="" />
+  <input type="hidden" id="w" name="w" value="" />
+  <input type="hidden" id="h" name="h" value="" />
+  <input type="hidden" id="widthImage" name="widthImage" value=""/>
+  <input type="hidden" id="hiddenField" th:field="${person.photo}" />
+
+  <button type="submit" class="button" >Сохранить изменения</button>
+
+</form>
+
+<input id="fileInput" type="file"  onchange="processFiles(this.files)" />
+<button onclick="showFileInput()" class="button" >Добавить фотографию</button>
+<p class="p">Можно перетащить</p>
+<p class="p">изображение</p>
+<p class="p">в область слева</p>
+<div id="previews">
+  <div id="previewSmall"></div>
+  <div id="previewBig"></div>
+</div>
+      <div class="cleaner h30"></div>
+
+      <div class="cleaner"></div>
+      <a href="#" class="gototop"></a>
+    </div>
+  </div>
+
+</div> <!-- end of warpper -->
+
+</body>
+
+<script src="/js/changeButton.js"></script>
+<script src="/js/simpleboxPhoto.js"></script>
+<script type="text/javascript">
+
+    var ic = new ICropper(
+        'cropperContainer'
+        ,{
+            keepSquare: true
+            ,image: ''
+            ,preview: ['previewSmall']
+        });
+    //use bindPreview to dynamically add preview nodes
+    ic.bindPreview('previewBig');
+
+</script>
+</html>
