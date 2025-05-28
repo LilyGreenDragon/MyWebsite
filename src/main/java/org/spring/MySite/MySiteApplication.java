@@ -44,7 +44,7 @@ public class MySiteApplication implements CommandLineRunner {
 		SpringApplication.run(MySiteApplication.class, args);
 	}
 
-	 @Override
+	@Override
 	public void run(String... args) throws Exception {
 /*
 		Optional<Person> person = peopleService.findByUsername("Tony");
@@ -57,4 +57,5 @@ public class MySiteApplication implements CommandLineRunner {
 */
 
 	}
+
 }

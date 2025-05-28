@@ -22,7 +22,7 @@
 
         <div class="content_box_admin">
             <div>
-            <form th:method="POST" th:action="@{admin/pass}" th:object="${pass}" >
+            <form th:method="POST" th:action="@{pass}" th:object="${pass}" >
                 <label for="pass" >Пароль для регистрации:</label> <input type="text" id="pass"  class="required input_field" th:field="*{passwordReg}"/>
                 <input type="submit" value="OK" />
             </form>

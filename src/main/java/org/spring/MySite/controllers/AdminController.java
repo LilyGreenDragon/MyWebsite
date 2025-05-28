@@ -37,6 +37,7 @@ public class AdminController {
         this.peopleService = peopleService;
     }
 
+
     @GetMapping("/adminIn")
     public String adminIn(Model model) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -82,22 +83,8 @@ public class AdminController {
         updatedPerson.getRoles().clear();
         updatedPerson.getRoles().add(role);
         peopleService.save(updatedPerson);
-      List<Object> principals = sessionRegistry.getAllPrincipals();
-        for (Object principal : principals) {
-            if (principal instanceof PersonDetails) {
-                PersonDetails user = (PersonDetails) principal;
-                if (user.getPerson().getUsername().equals(person.getUsername())){
-                //if (user.getPerson().getId()==person.getId())
 
-                    List<SessionInformation> sessions = sessionRegistry.getAllSessions(principal, false);
-                    for (SessionInformation session : sessions) {
-                        session.expireNow(); // invalidate the session
-                    }
-                    System.out.println(((PersonDetails) principal).getAuthorities());
-                }
-            }
-        }
-
+        expireSession(person);
         return "redirect:/admin/admin";
     }
 
@@ -110,6 +97,8 @@ public class AdminController {
         updatedPerson.getRoles().clear();
         updatedPerson.getRoles().add(role);
         peopleService.save(updatedPerson);
+
+        expireSession(person);
         return "redirect:/admin/admin";
     }
 
@@ -122,6 +111,8 @@ public class AdminController {
         updatedPerson.getRoles().clear();
         updatedPerson.getRoles().add(role);
         peopleService.save(updatedPerson);
+
+        expireSession(person);
         return "redirect:/admin/admin";
     }
 
@@ -129,24 +120,8 @@ public class AdminController {
     public String deleteUser (@ModelAttribute("person") Person person) {
 
         Person deletedPerson=peopleService.findByUsername(person.getUsername()).get();
-        System.out.println(deletedPerson);
-       // peopleService.deleteById(deletedPerson.getId());
 
-        List<Object> principals = sessionRegistry.getAllPrincipals();
-        for (Object principal : principals) {
-            if (principal instanceof PersonDetails) {
-                PersonDetails user = (PersonDetails) principal;
-                if (user.getPerson().getUsername().equals(person.getUsername())){
-                    //if (user.getPerson().getId()==person.getId())
-                    List<SessionInformation> sessions = sessionRegistry.getAllSessions(principal, false);
-                    for (SessionInformation session : sessions) {
-                        session.expireNow(); // invalidate the session
-                    }
-                    System.out.println(((PersonDetails) principal).getAuthorities());
-                }
-            }
-        }
-
+        expireSession(person);
         peopleService.deleteById(deletedPerson.getId());
         return "redirect:/admin/admin";
     }
@@ -206,6 +181,24 @@ passIn.setPasswordReg(passwordIn.getPasswordReg());
 passIn.print();
         return "redirect:/admin/admin";
     }
+
+public void expireSession (Person person) {
+    List<Object> principals = sessionRegistry.getAllPrincipals();
+    for (Object principal : principals) {
+        if (principal instanceof PersonDetails) {
+            PersonDetails user = (PersonDetails) principal;
+            if (user.getPerson().getUsername().equals(person.getUsername())) {
+                //if (user.getPerson().getId()==person.getId())
+                List<SessionInformation> sessions = sessionRegistry.getAllSessions(principal, false);
+                for (SessionInformation session : sessions) {
+                    session.expireNow(); // invalidate the session
+                }
+                System.out.println(((PersonDetails) principal).getAuthorities());
+            }
+        }
+    }
+}
+
 }
 
 

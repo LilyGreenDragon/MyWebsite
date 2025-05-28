@@ -5,15 +5,10 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.spring.MySite.models.Dinner;
 import org.spring.MySite.models.Element;
-import org.spring.MySite.models.Order;
-import org.spring.MySite.models.Person;
-import org.spring.MySite.security.P;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.*;
-
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,9 +22,9 @@ import java.util.stream.Collectors;
 
     List<Element> elementsBasic;
     Dinner dinnerOrder;
-    List<Order> orders = new ArrayList<>();
 
-        @GetMapping("/make")
+
+        @GetMapping("/makeDinner")
         public String showDinnerForm(Model model) {
             elementsBasic = Arrays.asList(
                     new Element("NSSP", "Noodle soup", Element.Type.SOUP),
@@ -59,7 +54,7 @@ import java.util.stream.Collectors;
                 .collect(Collectors.toList());
     }
 
-    @PostMapping("/make")
+    @PostMapping("/makeDinner")
     public String processDesign(@ModelAttribute("dinner") @Valid Dinner dinner, @RequestParam(value = "selected", required = false) String[] selected, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
         return "makeDinner";
@@ -79,32 +74,10 @@ import java.util.stream.Collectors;
         // Save the taco design...
         // We'll do this in chapter 3
         log.info("Processing design: " + dinner);
-        return "redirect:/orders/current";
+        return "orderOk";
     }
 
-    @GetMapping("/orders/current")
-    public String orderForm(Model model) {
-        model.addAttribute("order", new Order());
-        return "orderForm";
-    }
 
-    @PostMapping("/orders")
-    public String processOrder(@ModelAttribute("order") @Valid Order order, BindingResult bindingResult, @P Person personLogged) {
-        if (bindingResult.hasErrors()) {
-            return "orderForm";
-        }
-        order.setDinner(dinnerOrder);
-        order.setPerson(personLogged);
-        log.info("Order submitted: " + order);
-orders.add(order);
-        return "redirect:/orderOk";
-    }
-
-    @GetMapping("/show")
-    public String showOrders(Model model) {
-        model.addAttribute("orders", orders);
-            return "showOrders";
-    }
 
     }
 
