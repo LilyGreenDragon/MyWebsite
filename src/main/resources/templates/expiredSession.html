@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Сеанс завершен</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <link th:href="@{/css/go.css}" type="text/css" rel="stylesheet" />
+</head>
+
+<body>
+
+<table width="400px" border="0" align="center" cellpadding="0" cellspacing="0" class="wr" >
+    <tr>
+        <td width="100%" align="center">
+            <div class="login-page">
+                <div class="form">
+
+                    <form class="login-form" id="formGo"  th:action="@{/login}"  >
+                        <p class="messageNo">Сеанс завершен</p>
+                        <br/> <br/><br/><br/>
+
+                        <button type="submit">Ok</button>
+
+                    </form>
+                </div>
+            </div>
+        </td>
+    </tr>
+</table>
+
+</body>

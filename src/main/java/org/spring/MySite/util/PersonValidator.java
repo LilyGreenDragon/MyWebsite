@@ -29,7 +29,7 @@ public class PersonValidator implements Validator {
         }
 
         if(peopleService.findByUsername(registerDTO.getUsername()).isPresent()) {
-            errors.rejectValue("username", "", "This nickname is already taken");
+            errors.rejectValue("username", "", "This username is already taken");
         }
 
 

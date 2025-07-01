@@ -3,7 +3,7 @@ package org.spring.MySite.config;
 
 import org.modelmapper.ModelMapper;
 import org.spring.MySite.security.*;
-
+import org.spring.MySite.services.OAuth2PeopleService;
 import org.spring.MySite.services.PersonDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.servlet.ServletListenerRegistrationBean;
@@ -22,11 +22,21 @@ import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.core.session.SessionRegistryImpl;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.InMemoryOAuth2AuthorizedClientService;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizedClientRepository;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.SecurityFilterChain;
 
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
 import org.springframework.web.context.request.RequestContextListener;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
 import static jakarta.servlet.DispatcherType.ERROR;
 
 
@@ -40,13 +50,20 @@ public class SecurityConfig {
     private CustomAuthenticationSuccessHandler authenticationSuccessHandler;
     private CustomAuthenticationFailureHandler authenticationFailureHandler;
     private CustomAccessDeniedHandler accessDeniedHandler;
+    private OAuth2PeopleService oAuth2PeopleService;
+    private OAuth2AuthorizedClientService authorizedClientService;
 
-@Autowired
-    public SecurityConfig(PersonDetailsService personDetailsService, CustomAuthenticationSuccessHandler authenticationSuccessHandler, CustomAuthenticationFailureHandler authenticationFailureHandler, CustomAccessDeniedHandler accessDeniedHandler) {
+
+
+    @Autowired
+    public SecurityConfig(PersonDetailsService personDetailsService, CustomAuthenticationSuccessHandler authenticationSuccessHandler, CustomAuthenticationFailureHandler authenticationFailureHandler,
+                          CustomAccessDeniedHandler accessDeniedHandler, OAuth2PeopleService oAuth2PeopleService, OAuth2AuthorizedClientService authorizedClientService) {
         this.personDetailsService = personDetailsService;
         this.authenticationSuccessHandler = authenticationSuccessHandler;
         this.authenticationFailureHandler = authenticationFailureHandler;
         this.accessDeniedHandler = accessDeniedHandler;
+        this.oAuth2PeopleService = oAuth2PeopleService;
+        this.authorizedClientService = authorizedClientService;
 }
 
     @Bean
@@ -61,13 +78,11 @@ public class SecurityConfig {
                 .addFilterBefore(new UsernamePasswordAuthFilter(), UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests((requests) -> requests
 
-                        .requestMatchers(HttpMethod.GET,"/", "/error","/js/**", "/css/**","/images/**","/imagecab/**", "/login", "/register","/userIsAbsent","/access-denied").permitAll()
+                        .requestMatchers(HttpMethod.GET,"/", "/error","/js/**", "/css/**","/images/**","/imagecab/**", "/login", "/register","/userIsAbsent","/access-denied", "/oauth2/**", "/expiredSession").permitAll()
                         .requestMatchers(HttpMethod.POST, "/register", "/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/home","/myPage","/myPage/photo", "/myPage/mail", "/makeDinner", "/myPage/photo/delete", "/REST/**").hasAnyAuthority( "USER", "ADMIN")
                         .requestMatchers(HttpMethod.GET,"/home", "/myPage", "/photo", "/news", "/holiday","/makeDinner", "/admin/adminIn","/myPage/photo","/dr2021","/video","/REST/**","/per","/param").hasAnyAuthority( "USER", "ADMIN")
                         .requestMatchers("/admin/**").hasAuthority("ADMIN")
-                        //.requestMatchers(HttpMethod.POST, "/admin/**").hasAuthority( "ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/admin/*").hasAuthority( "ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/").hasAnyAuthority( "USER", "ADMIN")
                         .dispatcherTypeMatchers(ERROR).permitAll()
                         .anyRequest().denyAll()
@@ -89,20 +104,33 @@ public class SecurityConfig {
                         .accessDeniedHandler(accessDeniedHandler)
 
                 )
-
+                .oauth2Login(oauth2 -> oauth2
+                        .loginPage("/login")
+                        .authorizedClientService(authorizedClientService)
+                        .userInfoEndpoint(userInfo -> userInfo
+                        .userService(oAuth2PeopleService))
+                        .defaultSuccessUrl("/",true)
+                        //.failureUrl("/error?error=Login failed")
+                        .failureHandler((request,response,exception)-> {
+                    String errorMessage = exception.getMessage();
+                    response.sendRedirect("/login?error=" + URLEncoder.encode(errorMessage, StandardCharsets.UTF_8));
+                }))
                 .logout((logout) -> logout
                         .invalidateHttpSession(true)
                         .deleteCookies("JSESSIONID")
+                        .clearAuthentication(true)
                         .logoutUrl("/logout")
-                        .logoutSuccessUrl("/")
+                        //.logoutSuccessUrl("/")
+                        .logoutSuccessHandler(logoutSuccessHandler()) // Обработчик для OAuth2
                         .permitAll()
-                        )
+                )
 
                 .sessionManagement(config ->
                         config
-                                //.sessionFixation().none()       // <---- Here
-                               //.invalidSessionUrl("/invalidSession.html")
+                                //.sessionFixation().none()
+                                //.invalidSessionUrl("/invalidSession.html")
                                 .maximumSessions(1)
+                                .expiredSessionStrategy(new CustomSessionExpiredStrategy())
                                 //.maxSessionsPreventsLogin(true) // Блокировать новые входы
                                 .sessionRegistry(sessionRegistry())
                 )
@@ -134,12 +162,12 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception{
     return authenticationConfiguration.getAuthenticationManager();
     }
-
+/*
     @Bean
     public PasswordEncoder passwordEncoder(){
     return new BCryptPasswordEncoder();
 }
-
+*/
     @Bean
     public SessionRegistry sessionRegistry() {
         return new SessionRegistryImpl();
@@ -168,6 +196,19 @@ public class SecurityConfig {
         return new AuthenticationSuccessEventListener();
     }
 
+    @Bean
+    public LogoutSuccessHandler logoutSuccessHandler() {
+        return (request, response, authentication) -> {
+            if (authentication != null && authentication.getPrincipal() instanceof OAuth2User) {
+                // Для OAuth2 пользователей - редирект на кастомный обработчик
+                response.sendRedirect("/oauth2/logout");
+            } else {
+                // Для обычных пользователей
+                response.sendRedirect("/");
+            }
+        };
+    }
+
 
     /*@Bean
     public UrlBasedCorsConfigurationSource corsConfigurationSource() {
@@ -186,9 +227,11 @@ public class SecurityConfig {
         auth.userDetailsService(userDetailsService)
                 .passwordEncoder(encoder());
     }*/
-
+/*
     @Bean
     public ModelMapper modelMapper() {
         return new ModelMapper();
     }
+*/
+
 }

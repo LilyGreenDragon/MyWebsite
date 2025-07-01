@@ -1,5 +1,7 @@
 package org.spring.MySite.controllers;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,6 +21,8 @@ import org.springframework.security.core.session.SessionInformation;
 import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
+
+import java.security.Principal;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
@@ -92,12 +96,15 @@ public class PeopleControllerTest {
 
         PersonDetails personDetails = new PersonDetails(updatedPerson);
         SessionInformation session = mock(SessionInformation.class);
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        Principal principal = mock(Principal.class);
 
         // Настройка моков:
         // Есть 1 активная сессия для пользователя
         when(sessionRegistry.getAllSessions(personDetails, false)).thenReturn(List.of(session));
 
-        String result = peopleController.deletePerson(updatedPerson);
+        String result = peopleController.deletePerson(updatedPerson, principal, request, response);
 
         // Проверки:
         verify(session).expireNow(); // Сессия должна быть завершена

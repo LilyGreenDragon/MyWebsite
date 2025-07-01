@@ -4,6 +4,8 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.apache.tomcat.util.http.fileupload.FileUtils;
 import org.spring.MySite.models.Person;
@@ -16,21 +18,28 @@ import org.spring.MySite.util.PersonNotCreatedException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.session.SessionInformation;
 import org.springframework.security.core.session.SessionRegistry;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
 
 import javax.imageio.ImageIO;
@@ -41,6 +50,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.Principal;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -50,16 +60,24 @@ public class PeopleController {
     private PeopleService peopleService;
     private JavaMailSender mailSender;
     private SessionRegistry sessionRegistry;
+    private OAuth2AuthorizedClientService authorizedClientService;
 
     @Value("${pathToDirectory:/home/karina/ProgJava/imagecab/}")
     //@Value("${pathToDirectory:/app/imagecab/}")
     String pathToDirectory;
 
+    @Value("${spring.security.oauth2.client.registration.github.client-id}")
+    private String clientId;
+
+    @Value("${spring.security.oauth2.client.registration.github.client-secret}")
+    private String clientSecret;
+
     @Autowired
-    public PeopleController(PeopleService peopleService, JavaMailSender mailSender, SessionRegistry sessionRegistry) {
+    public PeopleController(PeopleService peopleService, JavaMailSender mailSender, SessionRegistry sessionRegistry, OAuth2AuthorizedClientService authorizedClientService) {
         this.peopleService = peopleService;
         this.mailSender = mailSender;
         this.sessionRegistry = sessionRegistry;
+        this.authorizedClientService=authorizedClientService;
     }
 
     @GetMapping("/per")
@@ -92,10 +110,12 @@ public class PeopleController {
 
 
     @GetMapping("/home")
-    public String showHome( Model model, @P Person personLogged) {
+    public String showHome(Model model, @P Person personLogged) {
+        System.out.println(personLogged);
         model.addAttribute("person", personLogged);
         return "index";
     }
+
 
     @GetMapping("/myPage")
     public String showMyPage(Model model, @P Person personLogged) {
@@ -112,32 +132,69 @@ public class PeopleController {
         return "photo";
     }
 
+    @GetMapping("/expiredSession")
+    public String expiredSession() {
+        System.out.println("Зашел в expired");
+        return "expiredSession";
+    }
+
     @DeleteMapping()
-    public String deletePerson(@P Person personLogged) {
+    public String deletePerson(@P Person personLogged, Principal principal, HttpServletRequest request, HttpServletResponse response) {
+        System.out.println("Принципал " +principal);
+        if (principal instanceof OAuth2AuthenticationToken authToken) {
 
-        peopleService.deleteById(personLogged.getId());
-       // SecurityContextHolder.clearContext();
-
-        /*List<Object> principals = sessionRegistry.getAllPrincipals();
-        for (Object principal : principals) {
-            List<SessionInformation> sessions = sessionRegistry.getAllSessions(principal, false);
-            for (SessionInformation sessionInfo : sessions) {
-                if (SecurityContextHolder.getContext().getAuthentication().getPrincipal().equals(sessionInfo.getPrincipal())) {
-                    if (!sessionInfo.isExpired()) sessionInfo.expireNow();
-                    sessionRegistry.removeSessionInformation(sessionInfo.getSessionId());
-                    }
-                    */
-
-        PersonDetails personDetails = new PersonDetails(personLogged);
-        List<SessionInformation> sessions = sessionRegistry.getAllSessions(personDetails, false);
-        for (SessionInformation sessionInfo : sessions) {
-                sessionInfo.expireNow();
-                sessionRegistry.removeSessionInformation(sessionInfo.getSessionId());
+            try {
+                // Отзываем токен GitHub
+                revokeGithubToken(authToken);
+                authorizedClientService.removeAuthorizedClient("github", authToken.getName());
+            } catch (Exception e) {
+                throw new AuthenticationServiceException("GitHub OAuth revocation failed", e);
+            }
         }
 
-        SecurityContextHolder.getContext().setAuthentication(null);
+        peopleService.deleteById(personLogged.getId());
+
+        PersonDetails personDetails = new PersonDetails(personLogged);
+        System.out.println("Details" +personDetails);
+        invalidateAllSessions(personDetails);
+
+        SecurityContextHolder.clearContext();
+        //SecurityContextHolder.getContext().setAuthentication(null);
+
+        new SecurityContextLogoutHandler().logout(request, response, SecurityContextHolder.getContext().getAuthentication());
+
         return "redirect:/";
     }
+
+    private void revokeGithubToken(OAuth2AuthenticationToken authToken) {
+
+        OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient("github", authToken.getName()); //вместо "github" можно authToken.getAuthorizedClientRegistrationId();
+        String accessToken = client.getAccessToken().getTokenValue();
+        if (accessToken != null && clientId != null && clientSecret !=null) {
+            System.out.println(accessToken);
+            System.out.println(clientId);
+            System.out.println(clientSecret );
+            String revokeUrl = String.format("https://api.github.com/applications/%s/token", clientId);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBasicAuth(clientId, clientSecret);
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            String requestBody = "{\"access_token\":\"" + accessToken + "\"}";
+
+            new RestTemplate().exchange(revokeUrl, HttpMethod.DELETE, new HttpEntity<>(requestBody, headers), Void.class);
+        }
+    }
+
+
+    private void invalidateAllSessions(PersonDetails personDetails) {
+        List<SessionInformation> sessions = sessionRegistry.getAllSessions(personDetails, false);
+        for (SessionInformation session : sessions) {
+            session.expireNow();
+            sessionRegistry.removeSessionInformation(session.getSessionId());
+        }
+    }
+
 
     @PostMapping("/home")
     public String imageTheme(@ModelAttribute("person") Person person, @P Person updatedPerson) {

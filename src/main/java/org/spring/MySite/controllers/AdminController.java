@@ -15,6 +15,8 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.session.SessionInformation;
 import org.springframework.security.core.session.SessionRegistry;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -78,7 +80,7 @@ public class AdminController {
     public String blockUser (@ModelAttribute("person") Person person) {
 
         Person updatedPerson=peopleService.findByUsername(person.getUsername()).get();
-        System.out.println(updatedPerson);
+        System.out.println("updatedPerson " +updatedPerson);
         Role role = rolesService.findByName("BLOCKED").get();
         updatedPerson.getRoles().clear();
         updatedPerson.getRoles().add(role);
@@ -182,18 +184,28 @@ passIn.print();
         return "redirect:/admin/admin";
     }
 
+
 public void expireSession (Person person) {
     List<Object> principals = sessionRegistry.getAllPrincipals();
     for (Object principal : principals) {
+        System.out.println("Принципал " +principal);
         if (principal instanceof PersonDetails) {
             PersonDetails user = (PersonDetails) principal;
             if (user.getPerson().getUsername().equals(person.getUsername())) {
                 //if (user.getPerson().getId()==person.getId())
                 List<SessionInformation> sessions = sessionRegistry.getAllSessions(principal, false);
                 for (SessionInformation session : sessions) {
-                    session.expireNow(); // invalidate the session
+                    session.expireNow();
                 }
-                System.out.println(((PersonDetails) principal).getAuthorities());
+                //System.out.println("Authorities " +((PersonDetails) principal).getAuthorities());
+            }
+        }
+        if (principal instanceof OAuth2User user) {
+            if (user.getName().equals(person.getUsername())) {
+                List<SessionInformation> sessions = sessionRegistry.getAllSessions(principal, false);
+                for (SessionInformation session : sessions) {
+                    session.expireNow();
+                }
             }
         }
     }

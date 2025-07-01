@@ -23,6 +23,10 @@
       <div th:if="${error!= null}" style="color:red" class="alert alert-danger" th:utext="${session[SPRING_SECURITY_LAST_EXCEPTION]}">error</div>
       <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
       <button type="submit">login</button>
+      <a href="/oauth2/authorization/github">Log in via GitHub</a>
+      <div th:if="${param.error}">
+        <p style="color:orange;"><span th:text="${param.error}"></span></p>
+      </div>
       <p class="message">Not registered? <a href="/register">Create an account</a></p>
 
     </form>
