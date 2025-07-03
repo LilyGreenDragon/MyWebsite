@@ -72,7 +72,7 @@ border-radius: 50px;
 .form .message {
   margin: 15px 0 0;
   color: #b3b3b3;
-  font-size: 12px;
+  font-size: 13px;
 }
 .form .message a {
   color: #4CAF50;
@@ -118,6 +118,13 @@ border-radius: 50px;
 .form .messageNo {
  color: #4CAF50;
  font-size: 24px;
+}
+
+.form .messageNo2 {
+ color: #666;
+ font-size: 16px;
+ margin-top: 10px;
+ margin-bottom: 20px;
 }
 
 

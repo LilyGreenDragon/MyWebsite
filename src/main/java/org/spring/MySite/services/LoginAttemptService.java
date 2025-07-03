@@ -51,7 +51,7 @@ public class LoginAttemptService {
 
     public boolean isBlocked() {
         try {
-            return attemptsCache.get(getClientIP()) >= MAX_ATTEMPT;
+            return attemptsCache.get(getClientIP()) > MAX_ATTEMPT;
         } catch (final ExecutionException e) {
             return false;
         }

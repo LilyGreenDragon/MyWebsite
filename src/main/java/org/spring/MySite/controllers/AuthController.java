@@ -19,15 +19,21 @@ import org.springframework.context.MessageSource;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.session.SessionRegistry;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -86,7 +92,7 @@ public class AuthController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null) {
 
-            if (authentication instanceof AnonymousAuthenticationToken) {
+            if (authentication instanceof AnonymousAuthenticationToken || authentication instanceof OAuth2AuthenticationToken) {
                 model.addAttribute("registerDTO",new RegisterDTO());
                 return "register";}
 
@@ -141,6 +147,56 @@ public String register( @ModelAttribute("registerDTO") @Valid RegisterDTO regist
             //authWithHttpServletRequest(request, registerDTO.getUsername(), registerDTO.getPassword());
             //return "forward:/login";
             return "redirect:/home";
+        }
+    }
+
+    @GetMapping("/oauth2/password")
+    public String showAdditionalPasswordForm(Model model) {
+        model.addAttribute("registerDTO",new RegisterDTO());
+        return "password";
+    }
+
+    @PostMapping("/oauth2/password")
+    public String processAdditionalPassword( @ModelAttribute("registerDTO") RegisterDTO registerDTO,
+            Authentication authentication, HttpServletRequest request ) {
+        System.out.println("authentication in /oauth2/password "+authentication);
+        PasswordIn passIn = new PasswordIn();
+        if (!(registerDTO.getPasswordReg().equals(passIn.getPasswordReg()))) {
+            final String xfHeader = request.getHeader("X-Forwarded-For");
+            if (xfHeader == null || xfHeader.isEmpty() || !xfHeader.contains(request.getRemoteAddr())) {
+                registrationAttemptService.registrationFailed(request.getRemoteAddr());
+            } else {
+                registrationAttemptService.registrationFailed(xfHeader.split(",")[0]);
+            }
+            return "badPasswordOAuth";
+        } else {
+
+            if (authentication instanceof OAuth2AuthenticationToken) {
+                OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
+                List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("USER"));
+                OAuth2AuthenticationToken authenticationUser = new OAuth2AuthenticationToken(
+                        oAuth2User,
+                        authorities,
+                        "github");
+
+                SecurityContextHolder.getContext().setAuthentication(authenticationUser);
+
+                String passwordForOAuthGitHub = "OAuth";
+                String username = oAuth2User.getAttribute("login");
+                String email = "";
+
+                RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
+                if (requestAttributes != null) {
+                    email = (String)
+                            requestAttributes.getAttribute("OAUTH2_EMAIL", RequestAttributes.SCOPE_SESSION);}
+
+                RegisterDTO userDTO = new RegisterDTO(username, passwordForOAuthGitHub, email, registerDTO.getPasswordReg());
+                registrationService.register(userDTO);
+
+                return "redirect:/";
+            }
+
+            return "redirect:/login";
         }
     }
 

@@ -94,6 +94,7 @@ public class PeopleController {
     @GetMapping()
     public String showFirst(Authentication authentication, Model model) {
         //Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        System.out.println("authentication in / "+authentication);
 
         if ((!(authentication instanceof AnonymousAuthenticationToken)) && authentication != null) {
 
@@ -102,11 +103,15 @@ public class PeopleController {
                 if (grantedAuthority.getAuthority().equals("BLOCKED")) {
                     return "blockPage";
                 }
+                if (grantedAuthority.getAuthority().equals("newOAuth")) {
+                    return "redirect:/oauth2/password";
+                }
             }
                 return "redirect:/home";
             }
             return "first";
         }
+
 
 
     @GetMapping("/home")
@@ -134,14 +139,13 @@ public class PeopleController {
 
     @GetMapping("/expiredSession")
     public String expiredSession() {
-        System.out.println("Зашел в expired");
         return "expiredSession";
     }
 
     @DeleteMapping()
-    public String deletePerson(@P Person personLogged, Principal principal, HttpServletRequest request, HttpServletResponse response) {
-        System.out.println("Принципал " +principal);
-        if (principal instanceof OAuth2AuthenticationToken authToken) {
+    public String deletePerson(@P Person personLogged, Authentication authentication, HttpServletRequest request, HttpServletResponse response) {
+        //System.out.println("Принципал " +principal);
+        if (authentication instanceof OAuth2AuthenticationToken authToken) {
 
             try {
                 // Отзываем токен GitHub
@@ -155,13 +159,12 @@ public class PeopleController {
         peopleService.deleteById(personLogged.getId());
 
         PersonDetails personDetails = new PersonDetails(personLogged);
-        System.out.println("Details" +personDetails);
+        //System.out.println("Details" +personDetails);
         invalidateAllSessions(personDetails);
 
         SecurityContextHolder.clearContext();
         //SecurityContextHolder.getContext().setAuthentication(null);
-
-        new SecurityContextLogoutHandler().logout(request, response, SecurityContextHolder.getContext().getAuthentication());
+        new SecurityContextLogoutHandler().logout(request, response, authentication);
 
         return "redirect:/";
     }

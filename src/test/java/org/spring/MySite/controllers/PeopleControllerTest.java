@@ -104,7 +104,7 @@ public class PeopleControllerTest {
         // Есть 1 активная сессия для пользователя
         when(sessionRegistry.getAllSessions(personDetails, false)).thenReturn(List.of(session));
 
-        String result = peopleController.deletePerson(updatedPerson, principal, request, response);
+        String result = peopleController.deletePerson(updatedPerson, authentication, request, response);
 
         // Проверки:
         verify(session).expireNow(); // Сессия должна быть завершена

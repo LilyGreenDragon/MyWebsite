@@ -22,7 +22,7 @@
             <div style="color:orange; font-size:12px" th:if="${#fields.hasErrors('password')}" th:errors="*{password}">Name error</div>
             <input type="text" placeholder="email address" th:field="*{email}" id="email"/>
             <div style="color:orange; font-size:12px" th:if="${#fields.hasErrors('email')}" th:errors="*{email}">Name error</div>
-            <input type="password" placeholder="password for registration" th:field="*{passwordReg}" id="passwordReg"/>
+            <input type="password" placeholder="registration password" th:field="*{passwordReg}" id="passwordReg"/>
             <div style="color:orange; font-size:12px" th:if="${#fields.hasErrors('passwordReg')}" th:errors="*{passwordReg}">Name error</div>
             <div th:if="${message != null}" style="color:red" class="alert alert-info" th:utext="${message}">message</div>
             <button type="submit" >create</button>

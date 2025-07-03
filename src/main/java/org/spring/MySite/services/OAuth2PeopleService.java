@@ -20,6 +20,8 @@ import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
 
 import java.util.List;
 import java.util.Map;
@@ -54,9 +56,7 @@ public class OAuth2PeopleService implements OAuth2UserService<OAuth2UserRequest,
         if (email==null) {
             email=fetchEmail(request);
             if (email==null) {
-                //throw new IllegalStateException("No verified email found");
                 throw new OAuth2AuthenticationException(new OAuth2Error("no_verified_email"),"You must have at least one verified email");
-
             }
         }
 
@@ -64,29 +64,38 @@ public class OAuth2PeopleService implements OAuth2UserService<OAuth2UserRequest,
         System.out.println(person);
 
         if (person.isEmpty()) {
-            PasswordIn password = new PasswordIn();
-            RegisterDTO userDTO = new RegisterDTO(username, passwordForOAuthGitHub, email, password.getPasswordReg());
-            registrationService.register(userDTO);
+            RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
+            if (requestAttributes != null) {
+                requestAttributes.setAttribute(
+                        "OAUTH2_EMAIL",
+                        email,
+                        RequestAttributes.SCOPE_SESSION);
+            }
+
+            List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("newOAuth"));
+            System.out.println("authorities "+authorities);
+           return new DefaultOAuth2User(authorities, oAuth2User.getAttributes(), "login");
+
         } else if(!passwordEncoder.matches(passwordForOAuthGitHub,person.get().getPassword())){
             throw new OAuth2AuthenticationException(new OAuth2Error("username_is_taken"),"The username " +username+ " is already taken");
-        } else {
+        } else if (passwordEncoder.matches(passwordForOAuthGitHub,person.get().getPassword())){
             System.out.println(person.get().getRoles().get(0));
             Role role = person.get().getRoles().get(0);
             if(role.getName().equals("BLOCKED")){
-
                 List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("BLOCKED"));
                 return new DefaultOAuth2User(authorities, oAuth2User.getAttributes(), "login");
             }
             if(role.getName().equals("ADMIN")){
-
                 List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ADMIN"));
                 return new DefaultOAuth2User(authorities, oAuth2User.getAttributes(), "login");
             }
 
+            List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("USER"));
+            return new DefaultOAuth2User(authorities, oAuth2User.getAttributes(), "login");
+
         }
 
-        List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("USER"));
-        return new DefaultOAuth2User(authorities, oAuth2User.getAttributes(), "login");
+        throw new OAuth2AuthenticationException(new OAuth2Error("unexpected_exception"),"Unexpected exception");
     }
 
     public String fetchEmail(OAuth2UserRequest request) {
@@ -131,5 +140,5 @@ public class OAuth2PeopleService implements OAuth2UserService<OAuth2UserRequest,
 }
 
 
-//при блокировке пользователя роль blocked
+
 //уже после лог ина может изменить логин в гитхабе

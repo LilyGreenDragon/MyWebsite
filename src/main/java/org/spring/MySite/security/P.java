@@ -10,6 +10,6 @@ import java.lang.annotation.Target;
 @Target({ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
 //@AuthenticationPrincipal(expression = "person")
-@AuthenticationPrincipal(expression = "@securityService.resolvePrincipal(#this)")
+@AuthenticationPrincipal(expression = "@securityService.resolvePrincipal(#this)") //#this ссылается на объект Authentication.getPrincipal()
 public @interface P {
 }
