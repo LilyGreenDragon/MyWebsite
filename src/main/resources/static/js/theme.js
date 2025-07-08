@@ -81,6 +81,7 @@ function getRandomInt(min, max) {
 function getImage() {
   const random = Math.floor(Math.random() * 3);
   return "/images/"+random+".gif" ;
+
 }
 //Для темы окна
 // Получаем элементы

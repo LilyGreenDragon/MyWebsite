@@ -6,6 +6,7 @@ import jakarta.mail.internet.MimeMessage;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.apache.tomcat.util.http.fileupload.FileUtils;
 import org.spring.MySite.models.Person;
@@ -13,8 +14,7 @@ import org.spring.MySite.repositories.PeopleRepository;
 import org.spring.MySite.security.P;
 import org.spring.MySite.security.PersonDetails;
 import org.spring.MySite.services.PeopleService;
-import org.spring.MySite.util.PersonErrorResponse;
-import org.spring.MySite.util.PersonNotCreatedException;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
@@ -40,6 +40,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 
 import javax.imageio.ImageIO;
@@ -79,6 +80,16 @@ public class PeopleController {
         this.sessionRegistry = sessionRegistry;
         this.authorizedClientService=authorizedClientService;
     }
+    @GetMapping("/session")
+    public String checkSession(HttpSession session) {
+        Enumeration<String> attributes = session.getAttributeNames();
+        while (attributes.hasMoreElements()) {
+            String attr = attributes.nextElement();
+            System.out.println(attr + ": " + session.getAttribute(attr));
+        }
+        return "indexMyPhoto";
+    }
+
 
     @GetMapping("/per")
     public String showPerson(Model model) {
@@ -103,7 +114,7 @@ public class PeopleController {
                 if (grantedAuthority.getAuthority().equals("BLOCKED")) {
                     return "blockPage";
                 }
-                if (grantedAuthority.getAuthority().equals("newOAuth")) {
+                if (grantedAuthority.getAuthority().equals("newOAuth2")) {
                     return "redirect:/oauth2/password";
                 }
             }
@@ -233,10 +244,10 @@ public class PeopleController {
     }
 
     @PostMapping("/myPage/photo")
-
     public String photoCrop(@ModelAttribute("person") Person person, @P Person updatedPerson,
-                            @RequestParam("x") String x,  @RequestParam("y") String y,
-                            @RequestParam("w") String w, @RequestParam("h") String h, @RequestParam("widthImage") String widthImage ) {
+                            @RequestParam("x") String x, @RequestParam("y") String y,
+                            @RequestParam("w") String w, @RequestParam("h") String h,
+                            @RequestParam("widthImage") String widthImage) {
 
         //String pathToDirectory = "C:\\cab\\imagecab\\";
         //String pathToDirectory = "/app/imagecab/";
@@ -245,21 +256,19 @@ public class PeopleController {
         if (!person.getPhoto().isEmpty()) {
 
             String[] stringsAfterSplit = person.getPhoto().split(",");
-            //System.out.println("stringsAfterSplit " +stringsAfterSplit);
 
             if (stringsAfterSplit.length != 1) {
 
                 String base64 = stringsAfterSplit[1];// Преобразование изображения через base64, удаление заголовка изображения (data: image / jpg; base64,)
-                //System.out.println("base64 " +base64);
+                System.out.println("base64 " +base64);
                 // 2, декодировать в байтовый массив
 
                 byte[] data = Base64.getDecoder().decode(base64);
-                //System.out.println("data " +data);
                 // 3, файл байтового потока
 
                 UUID uuid = UUID.randomUUID();
                 String uuidAsString = uuid.toString();// uuid как имя файла при сохранении
-                //System.out.println("uuidAsString " +uuidAsString);
+                System.out.println("uuidAsString " +uuidAsString);
 
                /* File filepath = new File("C:\\progJava\\MySite\\MySite\\src\\main\\resources\\static\\images\\imagecab\\");//Создать папку
                 if (!filepath.exists()) {// Если папки нет, создайте новую
@@ -294,7 +303,7 @@ public class PeopleController {
             } else {
 
                 String[] stringsAfterSplit2 = person.getPhoto().split("/");
-                //System.out.println("stringsAfterSplit2 " +stringsAfterSplit2[2]);
+                System.out.println("stringsAfterSplit2 " +stringsAfterSplit2[2]);
                 String str0 = stringsAfterSplit2[2];
                 String[] stringsAfterSplit3 = str0.split("\\.");
                 String str = stringsAfterSplit3[0];
@@ -305,6 +314,7 @@ public class PeopleController {
 
         }
         return "redirect:/myPage";
+
     }
 
     public void cropPhoto(String widthImage, String x, String y, String w, String h, String str ){
@@ -320,8 +330,12 @@ public class PeopleController {
         BufferedImage image = null;
         try {
             image = ImageIO.read(new File(pathToDirectory + str));
+            //System.out.println(pathToDirectory + str);
         } catch (Exception ex) {
-            System.err.println(ex.getMessage());
+            System.err.println("read Image error "+ ex.getMessage());
+        }
+        if (image == null) {
+            throw new IllegalArgumentException("Не удалось прочитать изображение. Возможно, неподдерживаемый формат.");
         }
 
         double rateX = (double)image.getWidth() / Integer.parseInt(widthImage);

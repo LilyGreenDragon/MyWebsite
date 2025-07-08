@@ -161,7 +161,7 @@
                     ,marginLeft: -info.l*rateX + 'px'
                     ,marginTop: -info.t*rateY + 'px'
                 });
-                console.log(info.cw);
+                console.log("widthImage " + info.cw);
                 console.log(info.ch);
 
 

@@ -103,8 +103,8 @@ function processFiles(files) {
                         ctx.drawImage(img, 0, 0, width, height);
 
                         // Show resized image in preview element
-                        var dataurl = canvas.toDataURL(imageFile.type);
-
+                        //var dataurl = canvas.toDataURL(imageFile.type);
+var dataurl = canvas.toDataURL('image/jpeg', 0.92); // 0.92 - качество для JPEG
                         document.getElementById("idImage").src = dataurl;
                         document.getElementById("idPreviewImage").src = dataurl;
                         document.getElementById("hiddenField").setAttribute("value", dataurl);

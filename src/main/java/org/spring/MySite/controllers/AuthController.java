@@ -9,6 +9,8 @@ import org.spring.MySite.DTO.RegisterDTO;
 
 import org.spring.MySite.models.PasswordIn;
 import org.spring.MySite.repositories.PeopleRepository;
+import org.spring.MySite.security.PersonDetails;
+import org.spring.MySite.services.LoginAttemptService;
 import org.spring.MySite.services.PeopleService;
 import org.spring.MySite.services.RegistrationAttemptService;
 import org.spring.MySite.services.RegistrationService;
@@ -22,9 +24,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.session.SessionInformation;
 import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -33,6 +39,9 @@ import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.security.Principal;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -46,6 +55,7 @@ public class AuthController {
     private PersonValidator personValidator;
     private PeopleService peopleService;
     private SessionRegistry sessionRegistry;
+
     //private JWTUtil jwtUtil;
 
     @Autowired
@@ -57,12 +67,14 @@ public class AuthController {
     String flag;
 
     @Autowired
-    public AuthController(AuthenticationManager authenticationManager, RegistrationService registrationService, PersonValidator personValidator, PeopleService peopleService, SessionRegistry sessionRegistry) {
+    public AuthController(AuthenticationManager authenticationManager, RegistrationService registrationService, PersonValidator personValidator,
+                          PeopleService peopleService, SessionRegistry sessionRegistry) {
         this.authenticationManager = authenticationManager;
         this.registrationService = registrationService;
         this.personValidator = personValidator;
         this.peopleService = peopleService;
         this.sessionRegistry = sessionRegistry;
+
 
     }
 
@@ -158,16 +170,24 @@ public String register( @ModelAttribute("registerDTO") @Valid RegisterDTO regist
 
     @PostMapping("/oauth2/password")
     public String processAdditionalPassword( @ModelAttribute("registerDTO") RegisterDTO registerDTO,
-            Authentication authentication, HttpServletRequest request ) {
-        System.out.println("authentication in /oauth2/password "+authentication);
+            Authentication authentication, HttpServletRequest request, HttpServletResponse response) {
+
         PasswordIn passIn = new PasswordIn();
         if (!(registerDTO.getPasswordReg().equals(passIn.getPasswordReg()))) {
+
             final String xfHeader = request.getHeader("X-Forwarded-For");
             if (xfHeader == null || xfHeader.isEmpty() || !xfHeader.contains(request.getRemoteAddr())) {
                 registrationAttemptService.registrationFailed(request.getRemoteAddr());
             } else {
                 registrationAttemptService.registrationFailed(xfHeader.split(",")[0]);
             }
+
+            if (authentication instanceof OAuth2AuthenticationToken ) {
+                invalidateAllSessions((OAuth2User) authentication.getPrincipal());
+            }
+            SecurityContextHolder.clearContext();
+            new SecurityContextLogoutHandler().logout(request, response, authentication);
+
             return "badPasswordOAuth";
         } else {
 
@@ -222,6 +242,14 @@ public String register( @ModelAttribute("registerDTO") @Valid RegisterDTO regist
             sessionRegistry.registerNewSession(request.getSession().getId(), auth.getPrincipal());
         } catch (ServletException e) {
             e.printStackTrace();
+        }
+    }
+
+    private void invalidateAllSessions(OAuth2User oAuth2User) {
+        List<SessionInformation> sessions = sessionRegistry.getAllSessions(oAuth2User, false);
+        for (SessionInformation session : sessions) {
+            session.expireNow();
+            sessionRegistry.removeSessionInformation(session.getSessionId());
         }
     }
 

@@ -52,18 +52,20 @@ public class SecurityConfig {
     private CustomAccessDeniedHandler accessDeniedHandler;
     private OAuth2PeopleService oAuth2PeopleService;
     private OAuth2AuthorizedClientService authorizedClientService;
+    private OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
 
 
 
     @Autowired
     public SecurityConfig(PersonDetailsService personDetailsService, CustomAuthenticationSuccessHandler authenticationSuccessHandler, CustomAuthenticationFailureHandler authenticationFailureHandler,
-                          CustomAccessDeniedHandler accessDeniedHandler, OAuth2PeopleService oAuth2PeopleService, OAuth2AuthorizedClientService authorizedClientService) {
+                          CustomAccessDeniedHandler accessDeniedHandler, OAuth2PeopleService oAuth2PeopleService, OAuth2AuthorizedClientService authorizedClientService, OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler) {
         this.personDetailsService = personDetailsService;
         this.authenticationSuccessHandler = authenticationSuccessHandler;
         this.authenticationFailureHandler = authenticationFailureHandler;
         this.accessDeniedHandler = accessDeniedHandler;
         this.oAuth2PeopleService = oAuth2PeopleService;
         this.authorizedClientService = authorizedClientService;
+        this.oAuth2AuthenticationFailureHandler = oAuth2AuthenticationFailureHandler;
 }
 
     @Bean
@@ -81,7 +83,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,"/", "/error","/js/**", "/css/**","/images/**","/imagecab/**", "/login", "/register","/userIsAbsent","/access-denied", "/oauth2/**", "/expiredSession","/oauth2/password").permitAll()
                         .requestMatchers(HttpMethod.POST, "/register", "/login", "/oauth2/password").permitAll()
                         .requestMatchers(HttpMethod.POST, "/home","/myPage","/myPage/photo", "/myPage/mail", "/makeDinner", "/myPage/photo/delete", "/REST/**").hasAnyAuthority( "USER", "ADMIN")
-                        .requestMatchers(HttpMethod.GET,"/home", "/myPage", "/photo", "/news", "/holiday","/makeDinner", "/admin/adminIn","/myPage/photo","/dr2021","/video","/REST/**","/per","/param").hasAnyAuthority( "USER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET,"/home", "/myPage", "/photo", "/news", "/holiday","/makeDinner", "/admin/adminIn","/myPage/photo","/dr2021","/video","/REST/**","/per","/param","/session").hasAnyAuthority( "USER", "ADMIN")
                         .requestMatchers("/admin/**").hasAuthority("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/").hasAnyAuthority( "USER", "ADMIN")
                         .dispatcherTypeMatchers(ERROR).permitAll()
@@ -111,10 +113,8 @@ public class SecurityConfig {
                         .userService(oAuth2PeopleService))
                         .defaultSuccessUrl("/",true)
                         //.failureUrl("/error?error=Login failed")
-                        .failureHandler((request,response,exception)-> {
-                    String errorMessage = exception.getMessage();
-                    response.sendRedirect("/login?error=" + URLEncoder.encode(errorMessage, StandardCharsets.UTF_8));
-                }))
+                        .failureHandler(oAuth2AuthenticationFailureHandler)
+                )
                 .logout((logout) -> logout
                         .invalidateHttpSession(true)
                         .deleteCookies("JSESSIONID")

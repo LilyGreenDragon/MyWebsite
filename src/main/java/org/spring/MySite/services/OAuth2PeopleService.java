@@ -23,6 +23,9 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -34,13 +37,16 @@ public class OAuth2PeopleService implements OAuth2UserService<OAuth2UserRequest,
     private RolesService rolesService;
     private RegistrationService registrationService;
     private PasswordEncoder passwordEncoder;
+    private RegistrationAttemptService registrationAttemptService;
 
     @Autowired
-    public OAuth2PeopleService(PeopleService peopleService, RolesService rolesService, RegistrationService registrationService, PasswordEncoder passwordEncoder) {
+    public OAuth2PeopleService(PeopleService peopleService, RolesService rolesService, RegistrationService registrationService,
+                               PasswordEncoder passwordEncoder, RegistrationAttemptService registrationAttemptService) {
         this.peopleService = peopleService;
         this.rolesService = rolesService;
         this.registrationService = registrationService;
         this.passwordEncoder = passwordEncoder;
+        this.registrationAttemptService = registrationAttemptService;
     }
 
     @Override
@@ -52,6 +58,13 @@ public class OAuth2PeopleService implements OAuth2UserService<OAuth2UserRequest,
         System.out.println("Attributes " + oAuth2User.getAttributes());
         String username = oAuth2User.getAttribute("login");
         String email = oAuth2User.getAttribute("email");
+
+        if (registrationAttemptService.isBlocked()) {
+            throw new OAuth2AuthenticationException(
+                    new OAuth2Error("user_blocked"),
+                    "Too many attempts, please try again later"
+            );
+        }
 
         if (email==null) {
             email=fetchEmail(request);
@@ -72,12 +85,12 @@ public class OAuth2PeopleService implements OAuth2UserService<OAuth2UserRequest,
                         RequestAttributes.SCOPE_SESSION);
             }
 
-            List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("newOAuth"));
+            List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("newOAuth2"));
             System.out.println("authorities "+authorities);
            return new DefaultOAuth2User(authorities, oAuth2User.getAttributes(), "login");
 
         } else if(!passwordEncoder.matches(passwordForOAuthGitHub,person.get().getPassword())){
-            throw new OAuth2AuthenticationException(new OAuth2Error("username_is_taken"),"The username " +username+ " is already taken");
+            throw new OAuth2AuthenticationException(new OAuth2Error("username_is_taken"),"This username is already taken");
         } else if (passwordEncoder.matches(passwordForOAuthGitHub,person.get().getPassword())){
             System.out.println(person.get().getRoles().get(0));
             Role role = person.get().getRoles().get(0);

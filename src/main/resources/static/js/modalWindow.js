@@ -40,37 +40,35 @@ function modalWindow(srcI){
 
  var modalImg = document.getElementById("modalImg");
  modalImg.src=srcI;
+ //console.error(modalImg.src);
 
-for (var i = 0 ; i < mas.length; i++)
- {
-    if (mas[i] == modalImg.src)   // Как только встретилась
-     {
-      to = i;  // Задаем текущее значение счетчику
-      }
+  // Извлекаем только путь после домена
+  const path = new URL(srcI).pathname;
+  //console.error("Путь " +path);
+  to = mas.indexOf(path);
+  //console.error("Элемент начальный " +to);
 }
-}
-//});
 
 function right_arrow() // Открытие следующей картинки(движение вправо)
 {
  var obj = document.getElementById("modalImg");
-  if (to < mas.length-1)  to++
-   else
-     to = 0;
-     obj.src = mas[to];
+ if (to < mas.length-1) { to=to+1;
+ console.error("Элемент после сдвига вправо " + to);
+   }else {to = 0;
+   console.error("Элемент после сдвига вправо " +to);}
+ obj.src = mas[to];
+ console.error(obj.src);
      //setCookie("foo", mas[to] , "", "/");	 // запоминаем текущую картинку
 }
 
 function left_arrow()
 {
  var obj = document.getElementById("modalImg");
-if (to > 0) to--;
-  else
-    to = mas.length-1;
-    obj.src = mas[to];
+ if (to > 0) {to--;
+   }else {to = mas.length-1;}
+ obj.src = mas[to];
     //setCookie("foo", mas[to] , "", "/");	 // запоминаем текущую картинку
 }
-
 
 // нажатие на крестик закрытия модального окна
 modalClose.addEventListener("click", function () {
