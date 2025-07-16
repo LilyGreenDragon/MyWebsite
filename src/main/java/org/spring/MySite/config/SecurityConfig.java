@@ -18,6 +18,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.core.session.SessionRegistryImpl;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -104,7 +105,6 @@ public class SecurityConfig {
                 )
                 .exceptionHandling((exceptionHandling) -> exceptionHandling
                         .accessDeniedHandler(accessDeniedHandler)
-
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .loginPage("/login")
@@ -125,10 +125,11 @@ public class SecurityConfig {
                         .permitAll()
                 )
 
-                .sessionManagement(config ->
-                        config
+                .sessionManagement(session ->
+                        session
                                 //.sessionFixation().none()
                                 //.invalidSessionUrl("/invalidSession.html")
+                                .sessionCreationPolicy(SessionCreationPolicy.ALWAYS)
                                 .maximumSessions(1)
                                 .expiredSessionStrategy(new CustomSessionExpiredStrategy())
                                 //.maxSessionsPreventsLogin(true) // Блокировать новые входы

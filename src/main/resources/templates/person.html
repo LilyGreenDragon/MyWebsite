@@ -122,7 +122,8 @@
 
   var csrfHeader= /*[[${_csrf.headerName}]]*/;
   var csrfToken= /*[[${_csrf.token}]]*/;
-  var urlRequest =/*[[${"http://192.168.0.59:8080/REST"}]]*/;
+  <!-- var urlRequest =/*[[${"http://192.168.0.59:8080/REST"}]]*/; -->
+  var urlRequest = /*[[@{/REST}]]*/;  <!-- Используем относительный путь -->
   var dropBox;
   var base64src;
   dropBox = document.getElementById("dropBox");

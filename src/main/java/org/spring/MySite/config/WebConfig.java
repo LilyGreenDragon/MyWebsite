@@ -10,8 +10,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebConfig implements WebMvcConfigurer {
 
 
-    @Value("${pathToResourceLocations:file:/home/karina/ProgJava/imagecab/}")
-    //@Value("${pathToResourceLocations:file:/app/imagecab/}")
+    // @Value("${pathToResourceLocations:file:/home/karina/ProgJava/imagecab/}")
+    @Value("${pathToResourceLocations:file:/app/imagecab/}")
     String pathToResourceLocations;
 
     @Override

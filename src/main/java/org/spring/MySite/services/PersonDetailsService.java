@@ -41,7 +41,6 @@ public class PersonDetailsService implements UserDetailsService {
 
         //Вариант 1
         /*Person person =  peopleService.findByUsername(username).get().orElseThrow(() ->new UsernameNotFoundException("User not found"));
-
         return new User(person.getUsername(), person.getPassword(), mapRolesToAuthorities(person.getRoles()));*/
 
        //Вариант 2
@@ -51,8 +50,6 @@ public class PersonDetailsService implements UserDetailsService {
             throw new UsernameNotFoundException("User not found");
 
            return new PersonDetails(person.get());
-
-
     }
 
     private Collection<GrantedAuthority> mapRolesToAuthorities(List<Role> roles){
