@@ -24,7 +24,7 @@
       <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
       <button type="submit">login</button>
 
-      <p class="message">Log in via <a href="/oauth2/authorization/github">GitHub</a></p>
+      <p class="message">Log in with <a href="/oauth2/authorization/github">GitHub</a></p>
       <div th:if="${param.error}">
         <p style="color:orange;"><span th:text="${param.error}"></span></p>
       </div>

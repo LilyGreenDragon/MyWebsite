@@ -32,7 +32,11 @@ import org.springframework.security.web.SecurityFilterChain;
 
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
+import org.springframework.security.web.csrf.CsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
+import org.springframework.session.data.redis.config.ConfigureRedisAction;
 import org.springframework.web.context.request.RequestContextListener;
 
 import java.net.URLEncoder;
@@ -74,6 +78,10 @@ public class SecurityConfig {
         return http
                 //.cors(withDefaults())
                 //.csrf(AbstractHttpConfigurer::disable)
+              /*  .csrf(csrf -> csrf
+                        .csrfTokenRepository(csrfTokenRepository())
+                        .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
+                )*/
                 /*.addFilterBefore(new RequestLoggerFilter(),
                 BasicAuthenticationFilter.class)*/
                 /*.addFilterBefore(new ResponseFilter(),
@@ -129,7 +137,8 @@ public class SecurityConfig {
                         session
                                 //.sessionFixation().none()
                                 //.invalidSessionUrl("/invalidSession.html")
-                                .sessionCreationPolicy(SessionCreationPolicy.ALWAYS)
+                                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                                .sessionFixation().migrateSession() // Без разрыва сессии при смене сервера
                                 .maximumSessions(1)
                                 .expiredSessionStrategy(new CustomSessionExpiredStrategy())
                                 //.maxSessionsPreventsLogin(true) // Блокировать новые входы
@@ -159,6 +168,14 @@ public class SecurityConfig {
         return new InMemoryUserDetailsManager(user,admin);
     }*/
 
+/*
+    @Bean
+    public CsrfTokenRepository csrfTokenRepository() {
+        HttpSessionCsrfTokenRepository repository = new HttpSessionCsrfTokenRepository();
+        repository.setSessionAttributeName("CSRF_TOKEN");
+        return repository;
+    }
+*/
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception{
     return authenticationConfiguration.getAuthenticationManager();

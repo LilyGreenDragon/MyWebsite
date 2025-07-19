@@ -6,10 +6,12 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.io.Serializable;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class PersonDetails implements UserDetails {
+public class PersonDetails implements UserDetails, Serializable {
+    private static final long serialVersionUID = 1L;  // Уникальный идентификатор версии
 
     private final Person person;
 
@@ -99,12 +101,13 @@ public class PersonDetails implements UserDetails {
         return result;
     }
 
+
+
     @Override
     public String toString() {
         return "PersonDetails{" +
                 "person=" + person +
                 '}';
     }
-
 
 }

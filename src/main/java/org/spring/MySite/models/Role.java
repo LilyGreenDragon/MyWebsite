@@ -4,6 +4,7 @@ package org.spring.MySite.models;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.io.Serializable;
 import java.util.*;
 
 @Entity
@@ -11,7 +12,8 @@ import java.util.*;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class Role {
+public class Role implements Serializable {
+    private static final long serialVersionUID = 1L;
         @Id
         @Column(name="id")
         @GeneratedValue(strategy = GenerationType.IDENTITY)

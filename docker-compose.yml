@@ -11,10 +11,10 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysqldb:3306/bootdb
       SPRING_DATASOURCE_PASSWORD: 14789
       SPRING_MAIL_PASSWORD: 9WxWtRuBtTxue8k35va9
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
     volumes:
       - /home/karina/ProgJava/imagecab:/app/imagecab:rw
-    depends_on:
-      - mysqldb
 
 
   mysite2:
@@ -29,41 +29,25 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysqldb:3306/bootdb
       SPRING_DATASOURCE_PASSWORD: 14789
       SPRING_MAIL_PASSWORD: 9WxWtRuBtTxue8k35va9
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
     volumes:
       - /home/karina/ProgJava/imagecab:/app/imagecab:rw
-    depends_on:
-      - mysqldb
 
-  nginx:
-    image: nginx:alpine
-    container_name: nginx
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-    depends_on:
-      - mysite1
-      - mysite2
+  redis:
+    image: redis:7
+    container_name: redis
     networks:
       - net1
-
-
-  mysqldb:
-    image: mysql:8
-    container_name: mysqldb
-    ports:
-      - "3307:3306"
-    networks:
-      - net1
-    environment:
-      - MYSQL_ROOT_PASSWORD=14789
-      - MYSQL_DATABASE=bootdb
     volumes:
-      - db:/var/lib/mysql
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+      - redis_data:/data
+    command: redis-server /usr/local/etc/redis/redis.conf
+
+volumes:
+  redis_data:
 
 networks:
   net1:
 
-volumes:
-  db:
 

@@ -14,6 +14,7 @@ import org.spring.MySite.util.MinimumDate;
 import org.springframework.format.annotation.DateTimeFormat;
 
 
+import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.*;
@@ -23,7 +24,8 @@ import java.util.*;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Person {
+public class Person implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     @Id
     @Column(name="id")

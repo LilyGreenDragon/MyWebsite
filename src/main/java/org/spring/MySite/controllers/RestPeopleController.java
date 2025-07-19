@@ -23,6 +23,7 @@ import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpSession;
 
 import java.util.HashMap;
 import java.util.List;
@@ -53,6 +54,12 @@ public class RestPeopleController {
         return new ResponseEntity<>(person, HttpStatus.OK);
     }
 */
+
+    @GetMapping("/session-info")
+    public String sessionInfo(HttpSession session) {
+        System.out.println("Session timeout: " + session.getMaxInactiveInterval() + " sec");
+        return "Session timeout: " + session.getMaxInactiveInterval() + " sec";
+    }
 
     @GetMapping("/myPage")
     public ResponseEntity<?> getPerson(@AuthenticationPrincipal PersonDetails personDetails){
