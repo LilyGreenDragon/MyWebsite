@@ -78,10 +78,7 @@ public class SecurityConfig {
         return http
                 //.cors(withDefaults())
                 //.csrf(AbstractHttpConfigurer::disable)
-              /*  .csrf(csrf -> csrf
-                        .csrfTokenRepository(csrfTokenRepository())
-                        .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
-                )*/
+
                 /*.addFilterBefore(new RequestLoggerFilter(),
                 BasicAuthenticationFilter.class)*/
                 /*.addFilterBefore(new ResponseFilter(),
@@ -168,14 +165,7 @@ public class SecurityConfig {
         return new InMemoryUserDetailsManager(user,admin);
     }*/
 
-/*
-    @Bean
-    public CsrfTokenRepository csrfTokenRepository() {
-        HttpSessionCsrfTokenRepository repository = new HttpSessionCsrfTokenRepository();
-        repository.setSessionAttributeName("CSRF_TOKEN");
-        return repository;
-    }
-*/
+
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception{
     return authenticationConfiguration.getAuthenticationManager();

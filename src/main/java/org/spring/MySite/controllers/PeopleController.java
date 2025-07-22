@@ -8,13 +8,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
-import org.apache.tomcat.util.http.fileupload.FileUtils;
 import org.spring.MySite.models.Person;
-import org.spring.MySite.repositories.PeopleRepository;
 import org.spring.MySite.security.P;
 import org.spring.MySite.security.PersonDetails;
 import org.spring.MySite.services.PeopleService;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
@@ -25,22 +22,18 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.session.SessionInformation;
 import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 
 import javax.imageio.ImageIO;
@@ -49,9 +42,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.security.Principal;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -80,11 +71,14 @@ public class PeopleController {
         this.sessionRegistry = sessionRegistry;
         this.authorizedClientService=authorizedClientService;
     }
+
+
     @GetMapping("/session")
     public String checkSession(HttpSession session) {
         Enumeration<String> attributes = session.getAttributeNames();
         while (attributes.hasMoreElements()) {
             String attr = attributes.nextElement();
+            System.out.println();
             System.out.println(attr + ": " + session.getAttribute(attr));
         }
         return "indexMyPhoto";
@@ -233,6 +227,7 @@ public class PeopleController {
         updatedPerson.setSurname(person.getSurname());
         updatedPerson.setBirthdate(person.getBirthdate());
         peopleService.save(updatedPerson);
+
         return "redirect:/myPage";
     }
 

@@ -16,12 +16,16 @@ spring:
 
 
   redis:
-    host: redis
+    #host: redis
+    host: localhost
     port: 6379
-    timeout: 60000
+    timeout: 30m
+    redis:
+      flush-mode: immediate
+      save-mode: on_set_attribute
 
   session:
-    store-type: redis
+   store-type: redis
 
 server:
   servlet:
