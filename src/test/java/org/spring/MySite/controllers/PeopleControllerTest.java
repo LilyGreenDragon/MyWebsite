@@ -65,7 +65,7 @@ public class PeopleControllerTest {
     void givenValidPerson_whenUpdatePerson_thenSave() {
 
         when(bindingResult.hasErrors()).thenReturn(false);
-        String viewName = peopleController.update(validPerson, bindingResult, updatedPerson);
+        String viewName = peopleController.update(validPerson, bindingResult, updatedPerson, authentication);
 
         assertEquals("redirect:/myPage", viewName);
         assertEquals(validPerson.getName(), updatedPerson.getName());
@@ -84,7 +84,7 @@ public class PeopleControllerTest {
 
         when(bindingResult.getAllErrors()).thenReturn(List.of(fieldError1, fieldError2));
 
-        String viewName = peopleController.update(invalidPerson, bindingResult, updatedPerson);
+        String viewName = peopleController.update(invalidPerson, bindingResult, updatedPerson, authentication);
 
         assertEquals("indexMyPage", viewName);
         verify(peopleService, never()).save(any());

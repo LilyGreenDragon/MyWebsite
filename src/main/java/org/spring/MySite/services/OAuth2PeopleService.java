@@ -1,5 +1,7 @@
 package org.spring.MySite.services;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import org.spring.MySite.DTO.RegisterDTO;
 import org.spring.MySite.models.PasswordIn;
 import org.spring.MySite.models.Person;
@@ -25,10 +27,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class OAuth2PeopleService implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
@@ -38,6 +37,9 @@ public class OAuth2PeopleService implements OAuth2UserService<OAuth2UserRequest,
     private RegistrationService registrationService;
     private PasswordEncoder passwordEncoder;
     private RegistrationAttemptService registrationAttemptService;
+
+    @Autowired
+    private HttpServletRequest httpServletRequest;
 
     @Autowired
     public OAuth2PeopleService(PeopleService peopleService, RolesService rolesService, RegistrationService registrationService,
@@ -76,18 +78,13 @@ public class OAuth2PeopleService implements OAuth2UserService<OAuth2UserRequest,
         Optional<Person> person = peopleService.findByUsername(username);
         System.out.println(person);
 
-        if (person.isEmpty()) {
-            RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
-            if (requestAttributes != null) {
-                requestAttributes.setAttribute(
-                        "OAUTH2_EMAIL",
-                        email,
-                        RequestAttributes.SCOPE_SESSION);
-            }
+            if (person.isEmpty()) {
+                Map<String, Object> attributes = new HashMap<>(oAuth2User.getAttributes());
+                attributes.put("OAUTH2_EMAIL", email);
 
-            List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("newOAuth2"));
+                List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("newOAuth2"));
             System.out.println("authorities "+authorities);
-           return new DefaultOAuth2User(authorities, oAuth2User.getAttributes(), "login");
+           return new DefaultOAuth2User(authorities, attributes, "login");
 
         } else if(!passwordEncoder.matches(passwordForOAuthGitHub,person.get().getPassword())){
             throw new OAuth2AuthenticationException(new OAuth2Error("username_is_taken"),"This username is already taken");
@@ -95,8 +92,7 @@ public class OAuth2PeopleService implements OAuth2UserService<OAuth2UserRequest,
             System.out.println(person.get().getRoles().get(0));
             Role role = person.get().getRoles().get(0);
             if(role.getName().equals("BLOCKED")){
-                List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("BLOCKED"));
-                return new DefaultOAuth2User(authorities, oAuth2User.getAttributes(), "login");
+                throw new OAuth2AuthenticationException(new OAuth2Error("blockedUser"),"You are blocked");
             }
             if(role.getName().equals("ADMIN")){
                 List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ADMIN"));

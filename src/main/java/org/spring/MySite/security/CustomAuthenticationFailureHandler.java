@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.spring.MySite.services.LoginAttemptService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.provisioning.UserDetailsManager;
@@ -53,7 +54,11 @@ public class CustomAuthenticationFailureHandler extends SimpleUrlAuthenticationF
 
 
         //String errorMessage = messages.getMessage("message.badCredentials", null, locale);
-        if (exception.getMessage().equalsIgnoreCase("blocked")) {
+        if (exception instanceof UsernameNotFoundException) {
+            response.sendRedirect("/userIsAbsent");
+        } else if (exception instanceof LockedException) {
+            response.sendRedirect("/blockedUser");
+        } else if (exception.getMessage() != null && exception.getMessage().equalsIgnoreCase("blocked")) {
 
             setDefaultFailureUrl("/login?error"); //setDefaultFailureUrl("/login?error=true");
             super.onAuthenticationFailure(request, response, exception);
@@ -64,10 +69,7 @@ public class CustomAuthenticationFailureHandler extends SimpleUrlAuthenticationF
             request.getSession()
                     .setAttribute(WebAttributes.AUTHENTICATION_EXCEPTION, errorMessage);
         }
-        else
-            //if (exception instanceof UsernameNotFoundException) {
-            response.sendRedirect("/userIsAbsent");
-        //}
+
 
 
     }

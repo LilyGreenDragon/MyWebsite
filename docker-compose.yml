@@ -1,18 +1,52 @@
 services:
- redis:
-  image: redis:7
-  container_name: redis
-  ports:
-    - "6379:6379"
-  networks:
-    - net1
-  volumes:
-    - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
-    - redis_data:/data
-  command: redis-server /usr/local/etc/redis/redis.conf
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - mysite1
+      - mysite2
+    networks:
+      - net1
 
-volumes:
-  redis_data:
+  mysite1:
+    image: mysite
+    container_name: mysite1
+    ports:
+      - "8081:8443"
+    networks:
+      - net1
+    environment:
+      SERVER_PORT: 8443
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysqldb:3306/bootdb
+      SPRING_DATASOURCE_PASSWORD: 14789
+      SPRING_MAIL_PASSWORD: 9WxWtRuBtTxue8k35va9
+      SPRING_REDIS_PASSWORD: 98741
+
+    volumes:
+      - /home/karina/ProgJava/imagecab:/app/imagecab:rw
+
+
+
+  mysite2:
+   image: mysite
+   container_name: mysite2
+   ports:
+    - "8082:8443"
+   networks:
+    - net1
+   environment:
+    SERVER_PORT: 8443
+    SPRING_DATASOURCE_URL: jdbc:mysql://mysqldb:3306/bootdb
+    SPRING_DATASOURCE_PASSWORD: 14789
+    SPRING_MAIL_PASSWORD: 9WxWtRuBtTxue8k35va9
+    SPRING_REDIS_PASSWORD: 98741
+
+   volumes:
+     - /home/karina/ProgJava/imagecab:/app/imagecab:rw
 
 networks:
  net1:

@@ -28,6 +28,12 @@
             </form>
             </div>
             <br>
+            <div>
+                <form th:method="POST" th:action="@{cleanSessionIndexes}" >
+                    <input type="submit" value="Очистить лишние индексы сессий" />
+                </form>
+            </div>
+            <br>
             <!--<div class="container">
                 <h3>Залогиненные пользователи</h3>
                 <div th:each="user : ${peopleLogged}">

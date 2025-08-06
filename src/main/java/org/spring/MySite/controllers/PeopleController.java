@@ -1,5 +1,6 @@
 package org.spring.MySite.controllers;
 
+import jakarta.annotation.PostConstruct;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 
@@ -14,21 +15,28 @@ import org.spring.MySite.security.PersonDetails;
 import org.spring.MySite.services.PeopleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.*;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationServiceException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.security.core.session.SessionInformation;
 import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.session.FindByIndexNameSessionRepository;
+import org.springframework.session.Session;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -51,8 +59,13 @@ public class PeopleController {
 
     private PeopleService peopleService;
     private JavaMailSender mailSender;
-    private SessionRegistry sessionRegistry;
     private OAuth2AuthorizedClientService authorizedClientService;
+
+    //@Autowired
+    //private SessionRegistry sessionRegistry;
+
+    @Autowired
+    private FindByIndexNameSessionRepository<? extends Session> sessionRepository;
 
     @Value("${pathToDirectory:/home/karina/ProgJava/imagecab/}")
     //@Value("${pathToDirectory:/app/imagecab/}")
@@ -65,11 +78,17 @@ public class PeopleController {
     private String clientSecret;
 
     @Autowired
-    public PeopleController(PeopleService peopleService, JavaMailSender mailSender, SessionRegistry sessionRegistry, OAuth2AuthorizedClientService authorizedClientService) {
+    public PeopleController(PeopleService peopleService, JavaMailSender mailSender,
+                            OAuth2AuthorizedClientService authorizedClientService) {
         this.peopleService = peopleService;
         this.mailSender = mailSender;
-        this.sessionRegistry = sessionRegistry;
         this.authorizedClientService=authorizedClientService;
+
+    }
+
+    @PostConstruct
+    public void checkSessionRepo() {
+        System.out.println("sessionRepository = " + sessionRepository);
     }
 
 
@@ -83,7 +102,6 @@ public class PeopleController {
         }
         return "indexMyPhoto";
     }
-
 
     @GetMapping("/per")
     public String showPerson(Model model) {
@@ -101,23 +119,21 @@ public class PeopleController {
         //Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         System.out.println("authentication in / "+authentication);
 
-        if ((!(authentication instanceof AnonymousAuthenticationToken)) && authentication != null) {
+        if (authentication != null && !(authentication instanceof AnonymousAuthenticationToken)) {
 
-            Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
+         /*   Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
             for (GrantedAuthority grantedAuthority : authorities) {
                 if (grantedAuthority.getAuthority().equals("BLOCKED")) {
                     return "blockPage";
                 }
-                if (grantedAuthority.getAuthority().equals("newOAuth2")) {
+               if (grantedAuthority.getAuthority().equals("newOAuth2")) {
                     return "redirect:/oauth2/password";
                 }
-            }
+            }*/
                 return "redirect:/home";
             }
             return "first";
         }
-
-
 
     @GetMapping("/home")
     public String showHome(Model model, @P Person personLogged) {
@@ -126,15 +142,11 @@ public class PeopleController {
         return "index";
     }
 
-
     @GetMapping("/myPage")
     public String showMyPage(Model model, @P Person personLogged) {
         model.addAttribute("person", personLogged);
         return "indexMyPage";
     }
-
-    /*@GetMapping("/news")
-    public String news() {return "indexNews";}*/
 
     @GetMapping("/myPage/photo")
     public String photoNew(Model model, @P Person personLogged) {
@@ -163,9 +175,9 @@ public class PeopleController {
 
         peopleService.deleteById(personLogged.getId());
 
-        PersonDetails personDetails = new PersonDetails(personLogged);
-        //System.out.println("Details" +personDetails);
-        invalidateAllSessions(personDetails);
+        //PersonDetails personDetails = new PersonDetails(personLogged);
+        //invalidateAllSessions(personDetails);
+        deleteCurrentSession(request);
 
         SecurityContextHolder.clearContext();
         //SecurityContextHolder.getContext().setAuthentication(null);
@@ -194,25 +206,35 @@ public class PeopleController {
         }
     }
 
-
+/* для SessionRegistry
     private void invalidateAllSessions(PersonDetails personDetails) {
-        List<SessionInformation> sessions = sessionRegistry.getAllSessions(personDetails, false);
-        for (SessionInformation session : sessions) {
-            session.expireNow();
-            sessionRegistry.removeSessionInformation(session.getSessionId());
+        List<SessionInformation> sessionsInf = sessionRegistry.getAllSessions(personDetails, false);
+        for (SessionInformation sessionI : sessionsInf) {
+            sessionI.expireNow();
+            sessionRegistry.removeSessionInformation(sessionI.getSessionId());
+        }
+    }
+*/
+
+    public void deleteCurrentSession(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate(); //внутри вызывает sessionRepository.deleteById(...)
         }
     }
 
-
     @PostMapping("/home")
-    public String imageTheme(@ModelAttribute("person") Person person, @P Person updatedPerson) {
+    public String imageTheme(@ModelAttribute("person") Person person, @P Person updatedPerson,Authentication authentication,HttpServletRequest request) {
         updatedPerson.setImageTheme(person.getImageTheme());
         peopleService.save(updatedPerson);
+        updateSession(authentication, request);
         return "redirect:/home";
     }
 
     @PostMapping("/myPage")
-    public String update(@Valid  @ModelAttribute("person")  Person person, BindingResult bindingResult, @P Person updatedPerson) {
+    //@UpdateAllSessions
+    public String update(@Valid  @ModelAttribute("person")  Person person, BindingResult bindingResult, @P Person updatedPerson,
+                         Authentication authentication) {
         if(bindingResult.hasErrors()) {
 
             System.out.println(person);
@@ -228,13 +250,80 @@ public class PeopleController {
         updatedPerson.setBirthdate(person.getBirthdate());
         peopleService.save(updatedPerson);
 
+        //updateSession(authentication, request);
+        updateAllUserSessions(authentication);
+
+        return "redirect:/myPage";
+    }
+
+    //Метод нужен если сессии хранятся в redis, работает когда у пользователя одна сессия
+    public void updateSession(Authentication authentication, HttpServletRequest request){
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof PersonDetails personDetails) {
+           HttpSession session = request.getSession(false);
+            if (session != null) {
+                session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, SecurityContextHolder.getContext());
+            }
+
+        }
+    }
+    //Метод нужен если сессии хранятся в redis,работает когда у пользователя несколько сессий
+    public void updateAllUserSessions(Authentication authentication) {
+    Object principal = authentication.getPrincipal();
+
+    if (principal instanceof PersonDetails personDetails) {
+        String username = personDetails.getUsername();
+
+        // Приводим тип sessionRepository
+        FindByIndexNameSessionRepository<Session> castedRepo =
+                (FindByIndexNameSessionRepository<Session>) sessionRepository;
+
+        Map<String, Session> sessions = castedRepo.findByPrincipalName(username);
+
+        for (Map.Entry<String, Session> entry : sessions.entrySet()) {
+            Session session = entry.getValue();
+
+            SecurityContext newContext = new SecurityContextImpl();
+            newContext.setAuthentication(new UsernamePasswordAuthenticationToken(
+                    personDetails,
+                    personDetails.getPassword(),
+                    personDetails.getAuthorities()
+            ));
+
+            session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, newContext); //сейчас SPRING_SECURITY_CONTEXT_KEY = "SPRING_SECURITY_CONTEXT"
+            castedRepo.save(session);
+        }
+    }
+}
+
+    @PostMapping("/myPage/mail")
+    public String eMail(@Valid @ModelAttribute("person") Person person, BindingResult bindingResult, @P Person personMail) {
+        if(bindingResult.hasErrors()) {
+            return "indexMyPage"; }
+
+        MimeMessage mimeMessage = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
+        String htmlMsg = person.getMessage();
+//mimeMessage.setContent(htmlMsg, "text/html"); /** Use this or below line **/
+        try {
+            helper.setText(htmlMsg, true); // Use this or above line.
+            helper.setTo("egorchik_mail@mail.ru"); //Site14789
+            helper.setSubject("Сообщение от " + personMail.getUsername()+ " "+ personMail.getEmail());
+            helper.setFrom("egorchik_mail@mail.ru");
+        } catch (MessagingException e) {
+            e.printStackTrace();
+        }
+
+        mailSender.send(mimeMessage);
+
         return "redirect:/myPage";
     }
 
     @PostMapping("/myPage/photo/delete")
-    public String deletePhoto(@ModelAttribute("person") Person person, @P Person updatedPerson) {
+    public String deletePhoto(@ModelAttribute("person") Person person, @P Person updatedPerson,Authentication authentication,HttpServletRequest request) {
         updatedPerson.setPhoto(person.getPhoto());
         peopleService.save(updatedPerson);
+        updateSession(authentication, request);
         return "redirect:/myPage";
     }
 
@@ -242,12 +331,12 @@ public class PeopleController {
     public String photoCrop(@ModelAttribute("person") Person person, @P Person updatedPerson,
                             @RequestParam("x") String x, @RequestParam("y") String y,
                             @RequestParam("w") String w, @RequestParam("h") String h,
-                            @RequestParam("widthImage") String widthImage) {
+                            @RequestParam("widthImage") String widthImage,Authentication authentication,HttpServletRequest request) {
 
         //String pathToDirectory = "C:\\cab\\imagecab\\";
         //String pathToDirectory = "/app/imagecab/";
 
-        System.out.println("person.getPhoto() " +person.getPhoto());
+        System.out.println("person.getPhoto() " + person.getPhoto());
         if (!person.getPhoto().isEmpty()) {
 
             String[] stringsAfterSplit = person.getPhoto().split(",");
@@ -255,7 +344,7 @@ public class PeopleController {
             if (stringsAfterSplit.length != 1) {
 
                 String base64 = stringsAfterSplit[1];// Преобразование изображения через base64, удаление заголовка изображения (data: image / jpg; base64,)
-                System.out.println("base64 " +base64);
+                System.out.println("base64 " + base64);
                 // 2, декодировать в байтовый массив
 
                 byte[] data = Base64.getDecoder().decode(base64);
@@ -263,7 +352,7 @@ public class PeopleController {
 
                 UUID uuid = UUID.randomUUID();
                 String uuidAsString = uuid.toString();// uuid как имя файла при сохранении
-                System.out.println("uuidAsString " +uuidAsString);
+                System.out.println("uuidAsString " + uuidAsString);
 
                /* File filepath = new File("C:\\progJava\\MySite\\MySite\\src\\main\\resources\\static\\images\\imagecab\\");//Создать папку
                 if (!filepath.exists()) {// Если папки нет, создайте новую
@@ -289,30 +378,33 @@ public class PeopleController {
                 cropPhoto(widthImage, x, y, w, h, uuidAsString + ".png");
 
                 String filePathForHtml = "/imagecab/" + uuidAsString + ".png";
-                System.out.println("filePathForHtml " +filePathForHtml);
+                System.out.println("filePathForHtml " + filePathForHtml);
 
                 person.setPhoto(filePathForHtml);
                 updatedPerson.setPhoto(person.getPhoto());
                 peopleService.save(updatedPerson);
+                updateSession(authentication, request);
 
-            } else {
+                } else {
 
-                String[] stringsAfterSplit2 = person.getPhoto().split("/");
-                System.out.println("stringsAfterSplit2 " +stringsAfterSplit2[2]);
-                String str0 = stringsAfterSplit2[2];
-                String[] stringsAfterSplit3 = str0.split("\\.");
-                String str = stringsAfterSplit3[0];
+                    String[] stringsAfterSplit2 = person.getPhoto().split("/");
+                    System.out.println("stringsAfterSplit2 " + stringsAfterSplit2[2]);
+                    String str0 = stringsAfterSplit2[2];
+                    String[] stringsAfterSplit3 = str0.split("\\.");
+                    String str = stringsAfterSplit3[0];
 
-                cropPhoto(widthImage, x, y, w, h, str + ".png");
+                    cropPhoto(widthImage, x, y, w, h, str + ".png");
+
+                }
 
             }
+            return "redirect:/myPage";
 
         }
-        return "redirect:/myPage";
 
-    }
 
-    public void cropPhoto(String widthImage, String x, String y, String w, String h, String str ){
+
+    public void cropPhoto(String widthImage, String x, String y, String w, String h, String str){
 
         //String pathToDirectory = "C:\\cab\\imagecab\\";
         //String pathToDirectory = "/app/imagecab/";
@@ -478,30 +570,6 @@ public class PeopleController {
         }
 
     }*/
-
-
-    @PostMapping("/myPage/mail")
-    public String eMail(@Valid @ModelAttribute("person") Person person, BindingResult bindingResult, @P Person personMail) {
-        if(bindingResult.hasErrors()) {
-            return "indexMyPage"; }
-
-        MimeMessage mimeMessage = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
-        String htmlMsg = person.getMessage();
-//mimeMessage.setContent(htmlMsg, "text/html"); /** Use this or below line **/
-        try {
-            helper.setText(htmlMsg, true); // Use this or above line.
-            helper.setTo("egorchik_mail@mail.ru"); //Site14789
-            helper.setSubject("Сообщение от " + personMail.getUsername()+ " "+ personMail.getEmail());
-            helper.setFrom("egorchik_mail@mail.ru");
-        } catch (MessagingException e) {
-            e.printStackTrace();
-        }
-
-        mailSender.send(mimeMessage);
-
-        return "redirect:/myPage";
-    }
 
    //Вариант 1 -см. в PersonDetailService
    /* @ModelAttribute("person")

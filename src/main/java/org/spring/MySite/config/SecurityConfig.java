@@ -1,7 +1,8 @@
 package org.spring.MySite.config;
 
 
-import org.modelmapper.ModelMapper;
+
+import jakarta.servlet.http.HttpSession;
 import org.spring.MySite.security.*;
 import org.spring.MySite.services.OAuth2PeopleService;
 import org.spring.MySite.services.PersonDetailsService;
@@ -13,6 +14,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
 import org.springframework.context.annotation.Profile;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -21,31 +23,29 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.core.session.SessionRegistryImpl;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.client.InMemoryOAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
-import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
-import org.springframework.security.oauth2.client.web.OAuth2AuthorizedClientRepository;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.SecurityFilterChain;
-
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
-import org.springframework.security.web.csrf.CsrfTokenRepository;
-import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
-import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
+import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
+import org.springframework.security.web.authentication.session.RegisterSessionAuthenticationStrategy;
+import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
-import org.springframework.session.data.redis.config.ConfigureRedisAction;
+import org.springframework.session.FindByIndexNameSessionRepository;
+import org.springframework.session.Session;
+import org.springframework.session.data.redis.RedisIndexedSessionRepository;
 import org.springframework.web.context.request.RequestContextListener;
+import jakarta.servlet.http.Cookie;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 
 import static jakarta.servlet.DispatcherType.ERROR;
 
 
-@ComponentScan(basePackages = { "org.spring.MySite" })
+@ComponentScan(basePackages = {"org.spring.MySite"})
 @Configuration
 @EnableWebSecurity
 @Profile("!test")
@@ -58,12 +58,19 @@ public class SecurityConfig {
     private OAuth2PeopleService oAuth2PeopleService;
     private OAuth2AuthorizedClientService authorizedClientService;
     private OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
+    private OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
 
+    @Autowired
+    private FindByIndexNameSessionRepository<? extends Session> sessionRepository;
+    //private RedisIndexedSessionRepository sessionRepository;
 
+    @Autowired
+    RedisTemplate<String, Object> redisTemplate;
 
     @Autowired
     public SecurityConfig(PersonDetailsService personDetailsService, CustomAuthenticationSuccessHandler authenticationSuccessHandler, CustomAuthenticationFailureHandler authenticationFailureHandler,
-                          CustomAccessDeniedHandler accessDeniedHandler, OAuth2PeopleService oAuth2PeopleService, OAuth2AuthorizedClientService authorizedClientService, OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler) {
+                          CustomAccessDeniedHandler accessDeniedHandler, OAuth2PeopleService oAuth2PeopleService, OAuth2AuthorizedClientService authorizedClientService, OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler,
+                          OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler) {
         this.personDetailsService = personDetailsService;
         this.authenticationSuccessHandler = authenticationSuccessHandler;
         this.authenticationFailureHandler = authenticationFailureHandler;
@@ -71,6 +78,7 @@ public class SecurityConfig {
         this.oAuth2PeopleService = oAuth2PeopleService;
         this.authorizedClientService = authorizedClientService;
         this.oAuth2AuthenticationFailureHandler = oAuth2AuthenticationFailureHandler;
+        this.oAuth2AuthenticationSuccessHandler = oAuth2AuthenticationSuccessHandler;
 }
 
     @Bean
@@ -86,7 +94,7 @@ public class SecurityConfig {
                 .addFilterBefore(new UsernamePasswordAuthFilter(), UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests((requests) -> requests
 
-                        .requestMatchers(HttpMethod.GET,"/", "/error","/js/**", "/css/**","/images/**","/imagecab/**", "/login", "/register","/userIsAbsent","/access-denied", "/oauth2/**", "/expiredSession","/oauth2/password").permitAll()
+                        .requestMatchers(HttpMethod.GET,"/", "/error","/js/**", "/css/**","/images/**","/imagecab/**", "/login", "/register","/userIsAbsent","/access-denied", "/oauth2/**", "/expiredSession", "/blockedUser").permitAll()
                         .requestMatchers(HttpMethod.POST, "/register", "/login", "/oauth2/password").permitAll()
                         .requestMatchers(HttpMethod.POST, "/home","/myPage","/myPage/photo", "/myPage/mail", "/makeDinner", "/myPage/photo/delete", "/REST/**").hasAnyAuthority( "USER", "ADMIN")
                         .requestMatchers(HttpMethod.GET,"/home", "/myPage", "/photo", "/news", "/holiday","/makeDinner", "/admin/adminIn","/myPage/photo","/dr2021","/video","/REST/**","/per","/param","/session").hasAnyAuthority( "USER", "ADMIN")
@@ -95,8 +103,6 @@ public class SecurityConfig {
                         .dispatcherTypeMatchers(ERROR).permitAll()
                         .anyRequest().denyAll()
                 )
-
-                //.httpBasic(withDefaults())
                 .formLogin((form) -> form
                         .loginPage("/login")
                         .loginProcessingUrl("/login")
@@ -118,75 +124,77 @@ public class SecurityConfig {
                         .userService(oAuth2PeopleService))
                         .defaultSuccessUrl("/",true)
                         //.failureUrl("/error?error=Login failed")
+                        .successHandler(oAuth2AuthenticationSuccessHandler)
                         .failureHandler(oAuth2AuthenticationFailureHandler)
                 )
-                .logout((logout) -> logout
+                .logout(logout -> logout
+                        .logoutUrl("/logout")
+                        .logoutSuccessUrl("/")
                         .invalidateHttpSession(true)
                         .deleteCookies("JSESSIONID")
                         .clearAuthentication(true)
-                        .logoutUrl("/logout")
-                        //.logoutSuccessUrl("/")
-                        .logoutSuccessHandler(logoutSuccessHandler()) // Обработчик для OAuth2
+                        //.logoutSuccessHandler(logoutSuccessHandler()) // Обработчик для OAuth2
                         .permitAll()
                 )
-
                 .sessionManagement(session ->
                         session
                                 //.sessionFixation().none()
                                 //.invalidSessionUrl("/invalidSession.html")
                                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                                 .sessionFixation().migrateSession() // Без разрыва сессии при смене сервера
-                                .maximumSessions(1)
-                                .expiredSessionStrategy(new CustomSessionExpiredStrategy())
+                                //.maximumSessions(1)
+                                //.expiredSessionStrategy(new CustomSessionExpiredStrategy())
                                 //.maxSessionsPreventsLogin(true) // Блокировать новые входы
-                                .sessionRegistry(sessionRegistry())
+                                //.sessionRegistry(sessionRegistry())
                 )
 
         .build();
     }
 
 
-  /*  @Bean
-    public UserDetailsService userDetailsService() {
-        UserDetails user =
-                User.withDefaultPasswordEncoder()
-                        .username("user")
-                        .password("password")
-                        .roles("USER")
-                        .build();
-
-        UserDetails admin =
-                User.withDefaultPasswordEncoder()
-                        .username("admin")
-                        .password("password")
-                        .roles("ADMIN")
-                        .build();
-
-        return new InMemoryUserDetailsManager(user,admin);
-    }*/
-
-
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception{
     return authenticationConfiguration.getAuthenticationManager();
     }
+    //В UtilConfig
 /*
     @Bean
     public PasswordEncoder passwordEncoder(){
     return new BCryptPasswordEncoder();
 }
+    @Bean
+    public ModelMapper modelMapper() {
+        return new ModelMapper();
+    }
 */
+/*
     @Bean
     public SessionRegistry sessionRegistry() {
         return new SessionRegistryImpl();
     }
 
-//для sessionRegistry
+//чтобы Spring Security получал уведомления о создании и уничтожении HTTP-сессий
+//Удаление сессии (например, при logout или вытеснении при maximumSessions) не приведёт к удалению её из SessionRegistry без этого бина
     @Bean
     public ServletListenerRegistrationBean<HttpSessionEventPublisher> httpSessionEventPublisher() {
         return new ServletListenerRegistrationBean<HttpSessionEventPublisher>(new HttpSessionEventPublisher());
     }
 
+//Регистрация сессии в SessionRegistry после логина
+    @Bean
+    public SessionAuthenticationStrategy sessionAuthenticationStrategy(SessionRegistry sessionRegistry) {
+        return new RegisterSessionAuthenticationStrategy(sessionRegistry);
+    }
+    */
+/*
+    @Bean
+    public ServletListenerRegistrationBean<HttpSessionEventPublisher> httpSessionEventPublisher() {
+        ServletListenerRegistrationBean<HttpSessionEventPublisher> listenerRegBean =
+                new ServletListenerRegistrationBean<>(new HttpSessionEventPublisher());
+        listenerRegBean.setOrder(1); // порядок инициализации (опционально)
+        return listenerRegBean;
+    }
+*/
 //чтобы иметь возможность получить доступ к запросу из UserDetailsService
     @Bean
     public RequestContextListener requestContextListener(){
@@ -204,6 +212,7 @@ public class SecurityConfig {
         return new AuthenticationSuccessEventListener();
     }
 
+/* если используется SessionRegistry
     @Bean
     public LogoutSuccessHandler logoutSuccessHandler() {
         return (request, response, authentication) -> {
@@ -216,7 +225,33 @@ public class SecurityConfig {
             }
         };
     }
+    */
+/*
+    @Bean
+    public LogoutSuccessHandler logoutSuccessHandler() {
+        return (request, response, authentication) -> {
+            HttpSession session = request.getSession(false);
+            if (session != null) {
+                String sessionId = session.getId();
+                System.out.println("sessionId "+sessionId );
+                sessionRepository.deleteById(sessionId); // Удаляем сессию из Redis
+                redisTemplate.expire("spring:session:sessions:" + sessionId, Duration.ofSeconds(1));
+                // Инвалидируем вручную
+                session.invalidate();
+            }
 
+            // Удаление JSESSIONID cookie
+            Cookie cookie = new Cookie("JSESSIONID", null);
+            cookie.setPath("/");
+            cookie.setMaxAge(0);
+            response.addCookie(cookie);
+
+            // Очистка SecurityContext, если не сделана автоматически
+            new SecurityContextLogoutHandler().logout(request, response, authentication);
+                response.sendRedirect("/");
+        };
+    }
+*/
 
     /*@Bean
     public UrlBasedCorsConfigurationSource corsConfigurationSource() {
@@ -235,11 +270,5 @@ public class SecurityConfig {
         auth.userDetailsService(userDetailsService)
                 .passwordEncoder(encoder());
     }*/
-/*
-    @Bean
-    public ModelMapper modelMapper() {
-        return new ModelMapper();
-    }
-*/
 
 }

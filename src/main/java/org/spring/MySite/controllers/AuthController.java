@@ -8,13 +8,9 @@ import org.spring.MySite.DTO.LoginDTO;
 import org.spring.MySite.DTO.RegisterDTO;
 
 import org.spring.MySite.models.PasswordIn;
-import org.spring.MySite.repositories.PeopleRepository;
-import org.spring.MySite.security.PersonDetails;
-import org.spring.MySite.services.LoginAttemptService;
 import org.spring.MySite.services.PeopleService;
 import org.spring.MySite.services.RegistrationAttemptService;
 import org.spring.MySite.services.RegistrationService;
-import org.spring.MySite.util.JWTUtil;
 import org.spring.MySite.util.PersonValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
@@ -23,29 +19,20 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.session.SessionInformation;
-import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
-import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
-import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.session.FindByIndexNameSessionRepository;
+import org.springframework.session.Session;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.context.request.RequestAttributes;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.security.Principal;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Controller
 //@RequestMapping("/auth")
@@ -54,7 +41,9 @@ public class AuthController {
     private RegistrationService registrationService;
     private PersonValidator personValidator;
     private PeopleService peopleService;
-    private SessionRegistry sessionRegistry;
+
+   // @Autowired
+   // private SessionRegistry sessionRegistry;
 
     //private JWTUtil jwtUtil;
 
@@ -64,17 +53,21 @@ public class AuthController {
     @Autowired
     private RegistrationAttemptService registrationAttemptService;
 
+    //@Autowired
+    //private RedisSessionRegistry redisSessionRegistry;
+
+    @Autowired
+    private FindByIndexNameSessionRepository<? extends Session> sessionRepository;
+
     String flag;
 
     @Autowired
     public AuthController(AuthenticationManager authenticationManager, RegistrationService registrationService, PersonValidator personValidator,
-                          PeopleService peopleService, SessionRegistry sessionRegistry) {
+                          PeopleService peopleService) {
         this.authenticationManager = authenticationManager;
         this.registrationService = registrationService;
         this.personValidator = personValidator;
         this.peopleService = peopleService;
-        this.sessionRegistry = sessionRegistry;
-
 
     }
 
@@ -102,16 +95,12 @@ public class AuthController {
                 });
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null) {
 
-            if (authentication instanceof AnonymousAuthenticationToken || authentication instanceof OAuth2AuthenticationToken) {
+            if (authentication == null || authentication instanceof AnonymousAuthenticationToken || authentication instanceof OAuth2AuthenticationToken) {
                 model.addAttribute("registerDTO",new RegisterDTO());
                 return "register";}
 
-            return "blockPage";}
-
-        model.addAttribute("registerDTO",new RegisterDTO());
-        return "register";
+            return "blockPage";
     }
 
     @PostMapping("/register")
@@ -120,7 +109,6 @@ public String register( @ModelAttribute("registerDTO") @Valid RegisterDTO regist
         if (registrationAttemptService.isBlocked()) {
             //throw new RuntimeException("blocked");
             return "redirect:/register?messageKey";
-
         }
         personValidator.validate(registerDTO, bindingResult);
         if(bindingResult.hasErrors()) {
@@ -136,25 +124,13 @@ public String register( @ModelAttribute("registerDTO") @Valid RegisterDTO regist
             return "badPassword";
         }
         else {
-            request = ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes())
-                    .getRequest();
+           /* request = ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes())
+                    .getRequest();*/
             registrationAttemptService.registrationSucceeded(request.getRemoteAddr());
 
             String password=  registerDTO.getPassword();
             registrationService.register(registerDTO);
 
-           // String token = jwtUtil.generateToken(registerDTO.getUsername());
-           // Map<String,String> mapToken = Map.of("jwt-token", token);
-
-
-            //не работает
-            //authWithAuthManager(request, registerDTO.getUsername(), registerDTO.getPassword());
-            //не работает
-       /*UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(registerDTO.getUsername(), registerDTO.getPassword());
-        Authentication authentication = authenticationManager.authenticate(authToken);
-        SecurityContextHolder.getContext().setAuthentication(authentication);*/
-
-            //работает
             authWithHttpServletRequest(request, registerDTO.getUsername(), password);
             //authWithHttpServletRequest(request, registerDTO.getUsername(), registerDTO.getPassword());
             //return "forward:/login";
@@ -169,7 +145,7 @@ public String register( @ModelAttribute("registerDTO") @Valid RegisterDTO regist
     }
 
     @PostMapping("/oauth2/password")
-    public String processAdditionalPassword( @ModelAttribute("registerDTO") RegisterDTO registerDTO,
+    public String checkPassword( @ModelAttribute("registerDTO") RegisterDTO registerDTO,
             Authentication authentication, HttpServletRequest request, HttpServletResponse response) {
 
         PasswordIn passIn = new PasswordIn();
@@ -183,14 +159,15 @@ public String register( @ModelAttribute("registerDTO") @Valid RegisterDTO regist
             }
 
             if (authentication instanceof OAuth2AuthenticationToken ) {
-                invalidateAllSessions((OAuth2User) authentication.getPrincipal());
+                //invalidateAllSessions((OAuth2User) authentication.getPrincipal());
+                deleteSessions((OAuth2User) authentication.getPrincipal());
             }
             SecurityContextHolder.clearContext();
             new SecurityContextLogoutHandler().logout(request, response, authentication);
 
             return "badPasswordOAuth";
         } else {
-
+            registrationAttemptService.registrationSucceeded(request.getRemoteAddr());
             if (authentication instanceof OAuth2AuthenticationToken) {
                 OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
                 List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("USER"));
@@ -199,17 +176,14 @@ public String register( @ModelAttribute("registerDTO") @Valid RegisterDTO regist
                         authorities,
                         "github");
 
-                SecurityContextHolder.getContext().setAuthentication(authenticationUser);
-
+                SecurityContext context = SecurityContextHolder.getContext();
+                context.setAuthentication(authenticationUser);
+                //request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", context);
+                request.getSession().setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
                 String passwordForOAuthGitHub = "OAuth";
                 String username = oAuth2User.getAttribute("login");
-                String email = "";
-
-                RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
-                if (requestAttributes != null) {
-                    email = (String)
-                            requestAttributes.getAttribute("OAUTH2_EMAIL", RequestAttributes.SCOPE_SESSION);}
-
+                String email = oAuth2User.getAttribute("OAUTH2_EMAIL");
+                System.out.println("email " + email);
                 RegisterDTO userDTO = new RegisterDTO(username, passwordForOAuthGitHub, email, registerDTO.getPasswordReg());
                 registrationService.register(userDTO);
 
@@ -220,31 +194,30 @@ public String register( @ModelAttribute("registerDTO") @Valid RegisterDTO regist
         }
     }
 
-    /*public void authWithAuthManager(HttpServletRequest request, String username, String password) {
-        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username, password);
-        request.getSession();
-
-        token.setDetails(new WebAuthenticationDetails(request));
-
-        try{
-            Authentication auth = authenticationManager.authenticate(token);
-            SecurityContextHolder.getContext().setAuthentication(auth);
-            sessionRegistry.registerNewSession(request.getSession().getId(), auth.getPrincipal());
-        } catch(Exception e){
-            e.printStackTrace();
-        }
-    }*/
 
     public void authWithHttpServletRequest(HttpServletRequest request, String username, String password) {
+
         try {
             request.login(username, password);
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            sessionRegistry.registerNewSession(request.getSession().getId(), auth.getPrincipal());
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String sessionId = request.getSession().getId();
+            //sessionRegistry.registerNewSession(sessionId, authentication.getPrincipal()); //метод для SessionRegistry
+
         } catch (ServletException e) {
             e.printStackTrace();
         }
     }
 
+    public void deleteSessions(OAuth2User oAuth2User) {
+        String username = oAuth2User.getAttribute("login");
+        Map<String, ? extends Session> userSessions = sessionRepository.findByPrincipalName(username);
+
+        for (String sessionId : userSessions.keySet()) {
+            sessionRepository.deleteById(sessionId);
+        }
+    }
+
+/* Метод для SessionRegistry
     private void invalidateAllSessions(OAuth2User oAuth2User) {
         List<SessionInformation> sessions = sessionRegistry.getAllSessions(oAuth2User, false);
         for (SessionInformation session : sessions) {
@@ -252,5 +225,19 @@ public String register( @ModelAttribute("registerDTO") @Valid RegisterDTO regist
             sessionRegistry.removeSessionInformation(session.getSessionId());
         }
     }
+*/
+/*
+    private void invalidateAllSessions(OAuth2User oAuth2User) {
+        String username = oAuth2User.getAttribute("login");
+        Set<Object> sessionIds = redisSessionRegistry.getSessions(username);
+
+        if (sessionIds != null) {
+            for (Object sessionId : sessionIds) {
+                sessionRepository.deleteById(sessionId.toString()); // Удаляем сессию из Redis
+            }
+            redisSessionRegistry.clearAllSessions(username); // Чистим Redis SET
+        }
+    }
+*/
 
 }

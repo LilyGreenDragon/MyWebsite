@@ -2,6 +2,7 @@ package org.spring.MySite.controllers;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.spring.MySite.models.Person;
 import org.spring.MySite.repositories.PeopleRepository;
@@ -16,9 +17,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.security.core.session.SessionRegistry;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.session.FindByIndexNameSessionRepository;
+import org.springframework.session.Session;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
@@ -36,13 +44,18 @@ public class RestPeopleController {
 
     private PeopleService peopleService;
     private JavaMailSender mailSender;
-    private SessionRegistry sessionRegistry;
+
+    //@Autowired
+    //private SessionRegistry sessionRegistry;
 
     @Autowired
-    public RestPeopleController(PeopleService peopleService, JavaMailSender mailSender, SessionRegistry sessionRegistry) {
+    private FindByIndexNameSessionRepository<? extends Session> sessionRepository;
+
+    @Autowired
+    public RestPeopleController(PeopleService peopleService, JavaMailSender mailSender) {
         this.peopleService = peopleService;
         this.mailSender = mailSender;
-        this.sessionRegistry = sessionRegistry;
+
     }
 
 
@@ -62,8 +75,8 @@ public class RestPeopleController {
     }
 
     @GetMapping("/myPage")
-    public ResponseEntity<?> getPerson(@AuthenticationPrincipal PersonDetails personDetails){
-        return new ResponseEntity<>(personDetails.getPerson(), HttpStatus.OK);
+    public ResponseEntity<?> getPerson(@P Person personLogged){
+        return new ResponseEntity<>(personLogged, HttpStatus.OK);
     }
 
    /* public Map<String, Object> get() {
@@ -90,7 +103,7 @@ public class RestPeopleController {
         map.put("p", "200");
         map.put("y", "222");
         return map;
-    }*/
+    }
 
 
     @PostMapping("/param")
@@ -114,10 +127,11 @@ public class RestPeopleController {
         System.out.println(y);
         return ResponseEntity.ok(HttpStatus.OK);
     }
-
+*/
 
     @PostMapping("/myPage")
-    public ResponseEntity<?> updatePerson(@RequestBody @Valid Person person, BindingResult bindingResult, @P Person updatedPerson) {
+    public ResponseEntity<?> updatePerson(@RequestBody @Valid Person person, BindingResult bindingResult, @P Person updatedPerson,
+                                          Authentication authentication,HttpServletRequest request) {
 
       if (bindingResult.hasErrors()) {
             //System.out.println("bindingResultUpdatePerson");
@@ -138,6 +152,7 @@ public class RestPeopleController {
         updatedPerson.setSurname(person.getSurname());
         updatedPerson.setBirthdate(person.getBirthdate());
         peopleService.save(updatedPerson);
+        updateAllUserSessions(authentication);
 
         //return ResponseEntity.ok("{\"success\": \"ok\"}");
         return new ResponseEntity<>("The user was updated successfully",HttpStatus.OK);
@@ -177,10 +192,40 @@ public class RestPeopleController {
     }
 
     @PostMapping("/myPage/photo/delete")
-    public ResponseEntity<?> deletePhoto(@RequestBody Person person, @P Person updatedPerson) {
+    public ResponseEntity<?> deletePhoto(@RequestBody Person person, @P Person updatedPerson,Authentication authentication,HttpServletRequest request) {
         updatedPerson.setPhoto(person.getPhoto());
         peopleService.save(updatedPerson);
+        updateAllUserSessions(authentication);
         return new ResponseEntity<>("The user was deleted successfully",HttpStatus.OK);
+    }
+
+    //Метод нужен если сессии хранятся в redis,работает когда у пользователя несколько сессий
+    public void updateAllUserSessions(Authentication authentication) {
+        Object principal = authentication.getPrincipal();
+
+        if (principal instanceof PersonDetails personDetails) {
+            String username = personDetails.getUsername();
+
+            // Приводим тип sessionRepository
+            FindByIndexNameSessionRepository<Session> castedRepo =
+                    (FindByIndexNameSessionRepository<Session>) sessionRepository;
+
+            Map<String, Session> sessions = castedRepo.findByPrincipalName(username);
+
+            for (Map.Entry<String, Session> entry : sessions.entrySet()) {
+                Session session = entry.getValue();
+
+                SecurityContext newContext = new SecurityContextImpl();
+                newContext.setAuthentication(new UsernamePasswordAuthenticationToken(
+                        personDetails,
+                        personDetails.getPassword(),
+                        personDetails.getAuthorities()
+                ));
+
+                session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, newContext); //сейчас SPRING_SECURITY_CONTEXT_KEY = "SPRING_SECURITY_CONTEXT"
+                castedRepo.save(session);
+            }
+        }
     }
 
 

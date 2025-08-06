@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 public class PersonDetails implements UserDetails, Serializable {
     private static final long serialVersionUID = 1L;  // Уникальный идентификатор версии
 
-    private final Person person;
+    private Person person;
 
     public PersonDetails(Person person) {
         this.person = person;
@@ -55,16 +55,14 @@ public class PersonDetails implements UserDetails, Serializable {
         return true;
     }
 
-    //есть метод isAccountNonLocked()
-
     @Override
     public boolean isAccountNonLocked() {
-        /*Collection<? extends GrantedAuthority> authorities = mapRolesToAuthorities(person.getRoles());
+        Collection<? extends GrantedAuthority> authorities = getAuthorities();
         for (GrantedAuthority grantedAuthority : authorities) {
             if (grantedAuthority.getAuthority().equals("BLOCKED")) {
                 return false;
             }
-        }*/
+        }
 
         return true;
     }
@@ -81,8 +79,11 @@ public class PersonDetails implements UserDetails, Serializable {
 
     // Нужно, чтобы получать данные аутентифицированного пользователя
     public Person getPerson() {
-        return this.person;
+        return person;
     }
+   /* public void setPerson(Person person) {
+        this.person = person;
+    }*/
 
     @Override
     public boolean equals(Object o) {
@@ -100,8 +101,6 @@ public class PersonDetails implements UserDetails, Serializable {
         result = (prime * result) + ((getPerson() == null) ? 0 : getPerson().hashCode());
         return result;
     }
-
-
 
     @Override
     public String toString() {
