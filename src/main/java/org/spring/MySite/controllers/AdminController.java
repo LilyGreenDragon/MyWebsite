@@ -1,9 +1,10 @@
 package org.spring.MySite.controllers;
 
-import org.spring.MySite.models.PasswordIn;
+import org.spring.MySite.models.Dictionary;
 import org.spring.MySite.models.Person;
 import org.spring.MySite.models.Role;
 
+import org.spring.MySite.repositories.DictionaryRepository;
 import org.spring.MySite.security.PersonDetails;
 import org.spring.MySite.services.PeopleService;
 import org.spring.MySite.services.RolesService;
@@ -42,6 +43,9 @@ public class AdminController {
     private RedisTemplate<String, Object> redisTemplate;
 
     @Autowired
+    private DictionaryRepository dictionaryRepository;
+
+    @Autowired
     public AdminController(RolesService rolesService, PeopleService peopleService) {
         this.rolesService = rolesService;
         this.peopleService = peopleService;
@@ -62,7 +66,7 @@ public class AdminController {
     }
 
     @GetMapping("/admin")
-    public String adminPage(Model model, @ModelAttribute("person") Person person, @ModelAttribute("passwordIn") PasswordIn passwordIn) {
+    public String adminPage(Model model) {
 
         List<Person> people = peopleService.findAll();
         Map<Integer, String> rolesMap = people.stream()
@@ -70,10 +74,12 @@ public class AdminController {
                         Person::getId,
                         p -> p.getRoles().get(0).getName()
                 ));
+        Dictionary dictionary = dictionaryRepository.findById("password").get();
+
         model.addAttribute("people", peopleService.findAll());
         model.addAttribute("peopleLogged", findAllLoggedUsers());
         model.addAttribute("rolesMap", rolesMap);
-        model.addAttribute("pass",passwordIn);
+        model.addAttribute("pass",dictionary);
 
         return "adminPage";
     }
@@ -190,10 +196,11 @@ public class AdminController {
     }
 
     @PostMapping("/pass")
-    public String passwordReg(@ModelAttribute("pass") PasswordIn passwordIn) {
-        PasswordIn passIn= new PasswordIn();
-        passIn.setPasswordReg(passwordIn.getPasswordReg());
-        passIn.print();
+    public String passwordReg(@ModelAttribute("pass") Dictionary newDictionary) {
+        Dictionary dictionary = dictionaryRepository.findById("password").get();
+        dictionary.setMeaning(newDictionary.getMeaning());
+        dictionaryRepository.save(dictionary);
+
         return "redirect:/admin/admin";
     }
 

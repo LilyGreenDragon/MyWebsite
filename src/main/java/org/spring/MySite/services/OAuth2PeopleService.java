@@ -1,9 +1,6 @@
 package org.spring.MySite.services;
 
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
-import org.spring.MySite.DTO.RegisterDTO;
-import org.spring.MySite.models.PasswordIn;
 import org.spring.MySite.models.Person;
 import org.spring.MySite.models.Role;
 import org.springframework.beans.factory.annotation.Autowired;

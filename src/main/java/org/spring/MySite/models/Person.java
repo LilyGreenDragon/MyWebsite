@@ -79,8 +79,6 @@ public class Person implements Serializable {
     @JsonIgnore
     private List<Role> roles = new ArrayList<>();
 
-
-
     public Person(int id,String username, String password, String email) {
         this.id = id;
         this.username = username;

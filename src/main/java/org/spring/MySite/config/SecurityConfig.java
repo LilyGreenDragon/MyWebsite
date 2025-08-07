@@ -94,7 +94,7 @@ public class SecurityConfig {
                 .addFilterBefore(new UsernamePasswordAuthFilter(), UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests((requests) -> requests
 
-                        .requestMatchers(HttpMethod.GET,"/", "/error","/js/**", "/css/**","/images/**","/imagecab/**", "/login", "/register","/userIsAbsent","/access-denied", "/oauth2/**", "/expiredSession", "/blockedUser").permitAll()
+                        .requestMatchers(HttpMethod.GET,"/", "/error","/js/**", "/css/**","/images/**","/imagecab/**", "/login", "/register","/userIsAbsent","/access-denied", "/oauth2/**", "/expiredSession", "/blockedUser", "/authenticatedUser").permitAll()
                         .requestMatchers(HttpMethod.POST, "/register", "/login", "/oauth2/password").permitAll()
                         .requestMatchers(HttpMethod.POST, "/home","/myPage","/myPage/photo", "/myPage/mail", "/makeDinner", "/myPage/photo/delete", "/REST/**").hasAnyAuthority( "USER", "ADMIN")
                         .requestMatchers(HttpMethod.GET,"/home", "/myPage", "/photo", "/news", "/holiday","/makeDinner", "/admin/adminIn","/myPage/photo","/dr2021","/video","/REST/**","/per","/param","/session").hasAnyAuthority( "USER", "ADMIN")

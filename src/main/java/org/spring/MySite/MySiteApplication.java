@@ -1,8 +1,9 @@
 package org.spring.MySite;
 
 import org.spring.MySite.DTO.RegisterDTO;
-import org.spring.MySite.models.PasswordIn;
+import org.spring.MySite.models.Dictionary;
 import org.spring.MySite.models.Person;
+import org.spring.MySite.repositories.DictionaryRepository;
 import org.spring.MySite.services.PeopleService;
 import org.spring.MySite.services.RegistrationService;
 import org.spring.MySite.services.RolesService;
@@ -21,27 +22,28 @@ public class MySiteApplication implements CommandLineRunner {
 	private RolesService rolesService;
 	private PasswordEncoder passwordEncoder;
 	private RegistrationService registrationService;
+	private DictionaryRepository dictionaryRepository;
 
 	@Autowired
-	public MySiteApplication(PeopleService peopleService, RolesService rolesService, PasswordEncoder passwordEncoder, RegistrationService registrationService) {
+	public MySiteApplication(PeopleService peopleService, RolesService rolesService,
+							 PasswordEncoder passwordEncoder, RegistrationService registrationService, DictionaryRepository dictionaryRepository) {
 		this.peopleService = peopleService;
 		this.rolesService = rolesService;
 		this.passwordEncoder = passwordEncoder;
 		this.registrationService = registrationService;
+		this.dictionaryRepository = dictionaryRepository;
 	}
-
 	public static void main(String[] args) {
 		SpringApplication.run(MySiteApplication.class, args);
 	}
-
 	@Override
 	public void run(String... args) throws Exception {
 
 		Optional<Person> person = peopleService.findByUsername("Tony");
 		System.out.println(person);
 		if (person.isEmpty()) {
-			PasswordIn password = new PasswordIn();
-			RegisterDTO adminDTO = new RegisterDTO("Tony", "1111", "tony@mail.ru", password.getPasswordReg());
+			Dictionary dictionary = dictionaryRepository.findById("password").get();
+			RegisterDTO adminDTO = new RegisterDTO("Tony", "1111", "tony@mail.ru", dictionary.getMeaning());
 			registrationService.registerAdmin(adminDTO);
 		}
 	}

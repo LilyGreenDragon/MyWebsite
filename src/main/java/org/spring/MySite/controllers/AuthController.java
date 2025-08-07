@@ -7,7 +7,8 @@ import jakarta.validation.Valid;
 import org.spring.MySite.DTO.LoginDTO;
 import org.spring.MySite.DTO.RegisterDTO;
 
-import org.spring.MySite.models.PasswordIn;
+import org.spring.MySite.models.Dictionary;
+import org.spring.MySite.repositories.DictionaryRepository;
 import org.spring.MySite.services.PeopleService;
 import org.spring.MySite.services.RegistrationAttemptService;
 import org.spring.MySite.services.RegistrationService;
@@ -53,30 +54,32 @@ public class AuthController {
     @Autowired
     private RegistrationAttemptService registrationAttemptService;
 
-    //@Autowired
-    //private RedisSessionRegistry redisSessionRegistry;
-
     @Autowired
     private FindByIndexNameSessionRepository<? extends Session> sessionRepository;
+
+    @Autowired
+    private DictionaryRepository dictionaryRepository;
 
     String flag;
 
     @Autowired
-    public AuthController(AuthenticationManager authenticationManager, RegistrationService registrationService, PersonValidator personValidator,
-                          PeopleService peopleService) {
+    public AuthController(AuthenticationManager authenticationManager, RegistrationService registrationService,
+                          PersonValidator personValidator, PeopleService peopleService) {
         this.authenticationManager = authenticationManager;
         this.registrationService = registrationService;
         this.personValidator = personValidator;
         this.peopleService = peopleService;
-
     }
 
     @GetMapping("/login")
-    public String login(Model model, @RequestParam("error") final Optional<String> error) {
+    public String login(Model model, @RequestParam("error") final Optional<String> error, Authentication authentication) {
 
-        model.addAttribute("loginDTO",new LoginDTO());
-        error.ifPresent( e ->  model.addAttribute("error", e));
-        return "login";
+        if (authentication == null || authentication instanceof AnonymousAuthenticationToken) {
+            model.addAttribute("loginDTO", new LoginDTO());
+            error.ifPresent(e -> model.addAttribute("error", e));
+            return "login";
+        }
+        return "authenticatedUser";
     }
 
     //Кривые ручки
@@ -86,7 +89,7 @@ public class AuthController {
     }
 
     @GetMapping("/register")
-    public String register(Model model, @RequestParam("messageKey" ) final Optional<String> messageKey,HttpServletRequest request) {
+    public String register(Model model, @RequestParam("messageKey" ) final Optional<String> messageKey,HttpServletRequest request, Authentication authentication) {
         //System.out.println("http://" + request.getServerName() + ":" + request.getServerPort() + request.getContextPath());
         Locale locale = request.getLocale();
         messageKey.ifPresent( key -> {
@@ -94,17 +97,15 @@ public class AuthController {
                     model.addAttribute("message", message);
                 });
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-            if (authentication == null || authentication instanceof AnonymousAuthenticationToken || authentication instanceof OAuth2AuthenticationToken) {
+            if (authentication == null || authentication instanceof AnonymousAuthenticationToken /*|| authentication instanceof OAuth2AuthenticationToken*/) {
                 model.addAttribute("registerDTO",new RegisterDTO());
                 return "register";}
 
-            return "blockPage";
+            return "authenticatedUser";
     }
 
     @PostMapping("/register")
-public String register( @ModelAttribute("registerDTO") @Valid RegisterDTO registerDTO, BindingResult bindingResult, Model model,  HttpServletRequest request, HttpServletResponse response) {
+    public String register( @ModelAttribute("registerDTO") @Valid RegisterDTO registerDTO, BindingResult bindingResult, Model model,  HttpServletRequest request, HttpServletResponse response) {
 
         if (registrationAttemptService.isBlocked()) {
             //throw new RuntimeException("blocked");
@@ -113,8 +114,8 @@ public String register( @ModelAttribute("registerDTO") @Valid RegisterDTO regist
         personValidator.validate(registerDTO, bindingResult);
         if(bindingResult.hasErrors()) {
             return "register";}
-        PasswordIn passIn = new PasswordIn();
-        if(!(registerDTO.getPasswordReg().equals(passIn.getPasswordReg()))){
+        Dictionary dictionary = dictionaryRepository.findById("password").get();
+        if(!(registerDTO.getPasswordReg().equals(dictionary.getMeaning()))){
             final String xfHeader = request.getHeader("X-Forwarded-For");
             if (xfHeader == null || xfHeader.isEmpty() || !xfHeader.contains(request.getRemoteAddr())) {
                 registrationAttemptService.registrationFailed(request.getRemoteAddr());
@@ -128,7 +129,7 @@ public String register( @ModelAttribute("registerDTO") @Valid RegisterDTO regist
                     .getRequest();*/
             registrationAttemptService.registrationSucceeded(request.getRemoteAddr());
 
-            String password=  registerDTO.getPassword();
+            String password= registerDTO.getPassword();
             registrationService.register(registerDTO);
 
             authWithHttpServletRequest(request, registerDTO.getUsername(), password);
@@ -148,8 +149,8 @@ public String register( @ModelAttribute("registerDTO") @Valid RegisterDTO regist
     public String checkPassword( @ModelAttribute("registerDTO") RegisterDTO registerDTO,
             Authentication authentication, HttpServletRequest request, HttpServletResponse response) {
 
-        PasswordIn passIn = new PasswordIn();
-        if (!(registerDTO.getPasswordReg().equals(passIn.getPasswordReg()))) {
+        Dictionary dictionary = dictionaryRepository.findById("password").get();
+        if (!(registerDTO.getPasswordReg().equals(dictionary.getMeaning()))) {
 
             final String xfHeader = request.getHeader("X-Forwarded-For");
             if (xfHeader == null || xfHeader.isEmpty() || !xfHeader.contains(request.getRemoteAddr())) {
