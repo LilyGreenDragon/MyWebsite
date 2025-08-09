@@ -24,6 +24,21 @@ body {
 
 }
 
+.wr_login {
+    border-radius: 120px;
+    border: 1px solid #a4a4a5;
+    background: #76b852; /* fallback for old browsers */
+    background: rgb(141,194,111);
+    background-image: linear-gradient(90deg, rgba(141,194,111,1) 0%, rgba(118,184,82,1) 50%);
+    background-repeat: no-repeat;
+    background-position: top center;
+    font-family: "Roboto", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    margin-top:7px;
+
+}
+
 .login-page {
 border-radius: 50px;
   width: 360px;
@@ -127,4 +142,21 @@ border-radius: 50px;
  margin-bottom: 20px;
 }
 
+.bee {
+margin-left: 25%;
+width: 145px;
+}
 
+.bee_button {
+cursor: pointer;
+border: none;
+background: transparent;
+outline: none;
+}
+
+.bee_caption {
+  font-size: 18px;
+  color: black;
+  margin-top: 5px;
+  text-align: center;
+}

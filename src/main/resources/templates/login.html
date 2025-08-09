@@ -8,7 +8,17 @@
 
 <body>
 
-<table width="400px" border="0" align="center" cellpadding="0" cellspacing="0" class="wr" >
+<div class="bee">
+  <form th:action="@{/}" target="_self">
+  <button type="submit" class="bee_button">
+  <img src="/images/bee_white.png" alt="" width="145px">
+  </button>
+  </form>
+  <div class="bee_caption">I go home!</div>
+</div>
+
+
+<table width="400px" border="0" align="center" cellpadding="0" cellspacing="0" class="wr_login" >
 <tr>
 <td width="100%" align="center">
 <div class="login-page">
@@ -28,15 +38,17 @@
       <div th:if="${param.error}">
         <p style="color:orange;"><span th:text="${param.error}"></span></p>
       </div>
-      <p class="message">Not registered? <a href="/register">Create an account</a></p>
+      <p class="message">Not registered? <a href="/registration">Create an account</a></p>
 
     </form>
 
   </div>
 </div>
 </td>
+
 </tr>
 
 </table>
+
 </body>
 </html>

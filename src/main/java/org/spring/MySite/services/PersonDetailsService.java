@@ -46,9 +46,9 @@ public class PersonDetailsService implements UserDetailsService {
        //Вариант 2
        Optional<Person> person = peopleService.findByUsername(username);
 
-        if (person.isEmpty())
+        if (person.isEmpty()) {
             throw new UsernameNotFoundException("User not found");
-
+        }
            return new PersonDetails(person.get());
     }
 

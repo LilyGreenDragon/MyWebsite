@@ -15,7 +15,7 @@
         <div class="form">
 
 
-          <form class="login-form" id="formGo" th:method="POST" th:action="@{/register}" th:object="${registerDTO}" >
+          <form class="login-form" id="formGo" th:method="POST" th:action="@{/registration}" th:object="${registerDTO}" >
             <input type="text" placeholder="username" th:field="*{username}" id="username"/>
             <div style="color:orange; font-size:12px" th:if="${#fields.hasErrors('username')}" th:errors="*{username}">Name error</div>
             <input type="password" placeholder="password" th:field="*{password}" id="password"/>

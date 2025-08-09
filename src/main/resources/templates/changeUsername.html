@@ -2,7 +2,7 @@
 <html xmlns:th="http://thymeleaf.org">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title>Регистрация</title>
+    <title>Пароль</title>
     <link th:href="@{/css/go.css}" type="text/css" rel="stylesheet" />
 </head>
 
@@ -13,21 +13,23 @@
         <td width="100%" align="center">
             <div class="login-page">
                 <div class="form">
-                    <p class="messageNo">Please enter registration password</p>
-                    <form class="login-form" id="formGo" th:method="POST" th:action="@{/oauth2/password}" th:object="${registerDTO}" >
 
-                        <input type="password" placeholder="registration password" th:field="*{passwordReg}" id="passwordReg"/>
+                    <form class="login-form" id="formGo"  th:action="@{/home}"  >
+                        <p class="messageNo">Обратите внимание!</p>
+                        <p class="messageNo">При изменении Username в Github у Вас создастся новый аккаунт.</p>
+                        <br/><br/><br/><br/>
 
-                        <button type="submit" >OK</button>
+                        <button type="submit">Ok</button>
 
                     </form>
+
+
                 </div>
             </div>
         </td>
     </tr>
 </table>
 
-<!--<script src="/js/go.js"></script>-->
-</body>
 
+</body>
 </html>

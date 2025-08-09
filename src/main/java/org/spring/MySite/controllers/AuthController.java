@@ -9,6 +9,7 @@ import org.spring.MySite.DTO.RegisterDTO;
 
 import org.spring.MySite.models.Dictionary;
 import org.spring.MySite.repositories.DictionaryRepository;
+import org.spring.MySite.services.LoginAttemptService;
 import org.spring.MySite.services.PeopleService;
 import org.spring.MySite.services.RegistrationAttemptService;
 import org.spring.MySite.services.RegistrationService;
@@ -60,6 +61,9 @@ public class AuthController {
     @Autowired
     private DictionaryRepository dictionaryRepository;
 
+    @Autowired
+    LoginAttemptService loginAttemptService;
+
     String flag;
 
     @Autowired
@@ -88,32 +92,36 @@ public class AuthController {
         return "userIsAbsent";
     }
 
-    @GetMapping("/register")
-    public String register(Model model, @RequestParam("messageKey" ) final Optional<String> messageKey,HttpServletRequest request, Authentication authentication) {
+    @GetMapping("/registration")
+    public String register(Model model, @RequestParam("messageKey") final Optional<String> messageKey,HttpServletRequest request, Authentication authentication) {
         //System.out.println("http://" + request.getServerName() + ":" + request.getServerPort() + request.getContextPath());
+
         Locale locale = request.getLocale();
-        messageKey.ifPresent( key -> {
-                    String message = messages.getMessage("auth.message.blocked", null, locale);
+        String message = messages.getMessage("auth.message.blocked", null, locale);
+        if (messageKey.isPresent()||loginAttemptService.isBlocked()||registrationAttemptService.isBlocked()) { //messageKey теперь не нужен
                     model.addAttribute("message", message);
-                });
+                };
 
             if (authentication == null || authentication instanceof AnonymousAuthenticationToken /*|| authentication instanceof OAuth2AuthenticationToken*/) {
                 model.addAttribute("registerDTO",new RegisterDTO());
-                return "register";}
+                return "registration";}
 
             return "authenticatedUser";
     }
 
-    @PostMapping("/register")
+    @PostMapping("/registration")
     public String register( @ModelAttribute("registerDTO") @Valid RegisterDTO registerDTO, BindingResult bindingResult, Model model,  HttpServletRequest request, HttpServletResponse response) {
 
-        if (registrationAttemptService.isBlocked()) {
+        if (registrationAttemptService.isBlocked()||loginAttemptService.isBlocked()) {
             //throw new RuntimeException("blocked");
-            return "redirect:/register?messageKey";
+           // return "redirect:/registration?messageKey";
+            return "redirect:/registration";
+
         }
+
         personValidator.validate(registerDTO, bindingResult);
         if(bindingResult.hasErrors()) {
-            return "register";}
+            return "registration";}
         Dictionary dictionary = dictionaryRepository.findById("password").get();
         if(!(registerDTO.getPasswordReg().equals(dictionary.getMeaning()))){
             final String xfHeader = request.getHeader("X-Forwarded-For");
@@ -135,7 +143,7 @@ public class AuthController {
             authWithHttpServletRequest(request, registerDTO.getUsername(), password);
             //authWithHttpServletRequest(request, registerDTO.getUsername(), registerDTO.getPassword());
             //return "forward:/login";
-            return "redirect:/home";
+            return "redirect:/";
         }
     }
 
@@ -188,13 +196,11 @@ public class AuthController {
                 RegisterDTO userDTO = new RegisterDTO(username, passwordForOAuthGitHub, email, registerDTO.getPasswordReg());
                 registrationService.register(userDTO);
 
-                return "redirect:/";
+                return "redirect:/changeUsername";
             }
-
             return "redirect:/login";
         }
     }
-
 
     public void authWithHttpServletRequest(HttpServletRequest request, String username, String password) {
 

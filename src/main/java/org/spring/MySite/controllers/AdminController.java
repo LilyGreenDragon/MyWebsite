@@ -94,7 +94,7 @@ public class AdminController {
     public String blockUser (@ModelAttribute("person") Person person) {
 
         Person updatedPerson=peopleService.findByUsername(person.getUsername()).get();
-        System.out.println("updatedPerson " +updatedPerson);
+        //System.out.println("updatedPerson " +updatedPerson);
         Role role = rolesService.findByName("BLOCKED").get();
         updatedPerson.getRoles().clear();
         updatedPerson.getRoles().add(role);
@@ -188,10 +188,11 @@ public class AdminController {
     }
 */
 
-
     @GetMapping("/user/{username}")
     public String userInfo(Model model, @PathVariable("username") String username) {
-        model.addAttribute("person", peopleService.findByUsername(username).get());
+        Optional<Person> personBD = peopleService.findByUsername(username);
+        if (personBD.isEmpty()) return "redirect:/admin/admin";
+        model.addAttribute("person", personBD.get());
         return "viewUser";
     }
 
@@ -293,9 +294,12 @@ public class AdminController {
                     }
                     if (auth != null && auth.getPrincipal() instanceof OAuth2User oAuth2User ) {
                         String username = oAuth2User.getAttribute("login");
-                        persons.add(peopleService.findByUsername(username).get());
+                        Optional<Person> personDB = peopleService.findByUsername(username);
+                        if (personDB.isEmpty()) {break;}; // если user зашел через github и еще не ввел пароль для регистрации(не добавился в бд), но уже висит в сессии
+                        persons.add(personDB.get());
                         break; // нашли хотя бы одну валидную сессию — достаточно
                     }
+
                 }
             }
         }
