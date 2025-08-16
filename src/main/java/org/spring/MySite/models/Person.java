@@ -1,6 +1,7 @@
 package org.spring.MySite.models;
 
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
@@ -60,6 +61,8 @@ public class Person implements Serializable {
 
     @MinimumDate
     @DateTimeFormat(pattern = "yyyy-MM-dd")
+    //@JsonFormat(pattern = "dd.MM.yyyy")
+    //@DateTimeFormat(pattern = "dd.MM.yyyy")
     @Column(name = "birthdate")
     private LocalDate birthdate;
 

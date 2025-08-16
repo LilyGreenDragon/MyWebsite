@@ -5,6 +5,8 @@
   <title>Кабинетик</title>
 
   <link th:href="@{/css/templatemo_style.css}" type="text/css" rel="stylesheet" />
+    <!-- Flatpickr стили -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 </head>
 
 <body>
@@ -57,7 +59,8 @@
                       <div class="error" id="surnameError"></div>
                       <div class="cleaner h10"></div>
 
-                      <label for="birthdate">Дата рождения:</label> <input type="date" value="" min="1920-01-01"  id="birthdate"  class="required input_field" />
+                      <label for="birthdate">Дата рождения:</label> <input type="text" id="birthdate" class="required input_field" placeholder="дд.мм.гггг" />
+              <!--    <input type="date" value="" min="1920-01-01"  id="birthdate"  class="required input_field" /> -->
                       <div class="error" id="birthdateError"></div>
                       <div class="cleaner h10"></div>
 
@@ -158,6 +161,7 @@ function subtractHours(date, hours) {
             $("#surname").val(data.surname);
            // $("#birthdate").val(d.split('T')[0]);
             $("#birthdate").val(data.birthdate);
+            birthdatePicker.setDate(data.birthdate, true);
             $("#hiddenField").val(data.photo);
             //console.log(hiddenField);
   base64src = document.getElementById("hiddenField").value;
@@ -210,7 +214,7 @@ function subtractHours(date, hours) {
                 setTimeout(() => surnameError.textContent="", 2000);
                 }
                 });
-       birthdate.addEventListener("input",
+       /*birthdate.addEventListener("input",
                 function(event){
        myBirthdate = new Date(birthdate.value);
        myBirthdateMin = new Date(birthdate.min);
@@ -226,7 +230,26 @@ function subtractHours(date, hours) {
                 birthdateError.textContent = "";
                 birthdateCorrect=true;
                 }
-                });
+                });*/
+
+// Доступ к дате через API flatpickr
+/*birthdate.addEventListener("input", function () {
+    const selectedDate = birthdatePicker.getDate(); // это Date-объект или null
+    const minDate = new Date(1920, 0, 1); // 1 января 1920
+    const today = new Date();
+
+    if (!selectedDate) {
+        birthdateError.textContent = "You entered a non-existent date";
+        birthdateCorrect = false;
+    } else if (selectedDate < minDate || selectedDate > today) {
+        birthdateError.textContent = "Date should be no earlier than 01.01.1920 and no later than today";
+        birthdateCorrect = false;
+    } else {
+        birthdateError.textContent = "";
+        birthdateCorrect = true;
+    }
+});*/
+birthdateCorrect = true;
 
        message.addEventListener("input",
                 function(event){
@@ -343,7 +366,19 @@ document.getElementById("hiddenField").setAttribute("value", base64src);
           </script>
 
 <script src="/js/imageInMessage.js"></script>
-
+<!-- Скрипты для даты 3шт внизу-->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
+<script>
+    const birthdatePicker =  flatpickr("#birthdate", {
+         dateFormat: "Y-m-d",
+         altInput: true,
+         altFormat: "d.m.Y",
+         locale: "ru",
+         minDate: "1920-01-01",
+         maxDate: "today"
+     });
+</script>
 
 </body>
 </html>

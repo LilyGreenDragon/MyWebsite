@@ -5,6 +5,9 @@
 <title>Кабинетик</title>
 
 <link th:href="@{/css/templatemo_style.css}" type="text/css" rel="stylesheet" />
+<!-- Flatpickr стили -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
 </head>
 
 <body>
@@ -43,7 +46,6 @@
             <div class="col_w310 float_l">
 
                 <h4>Личные данные</h4>
-
                 <div id="contact_form">
 
                 <form id="formNS" accept-charset="UTF-8" th:method="POST" th:action="@{/myPage}" th:object="${person}">
@@ -56,7 +58,8 @@
                     <div style="color:orange; font-size:12px" th:if="${#fields.hasErrors('surname')}" th:errors="*{surname}">Surname error</div>
                     <div class="cleaner h10"></div>
 
-                    <label for="birthdate">Дата рождения:</label> <input type="date" min="1920-01-01"   id="birthdate"  class="required input_field" th:field="*{birthdate}" />
+                    <label for="birthdate">Дата рождения:</label> <input type="text" id="birthdate" class="required input_field" th:field="*{birthdate}" placeholder="дд.мм.гггг" />
+                    <!-- было <input type="date" min="1920-01-01"   id="birthdate"  class="required input_field" th:field="*{birthdate}" /> -->
                     <div class="cleaner h10"></div>
 
                     <input type="submit" class="submit_btn"  id="submitNS" value="Сохранить" />
@@ -66,7 +69,8 @@
 
                 <form  id="formMessage" th:method="POST" th:action="@{/myPage/mail}" th:object="${person}">
 
-                    <label for="textMessage">Отправьте Егорчику сообщение:</label> <textarea id="textMessage" rows="0" cols="0" class="required"  th:field="*{message}"></textarea>
+                    <label for="textMessage">Отправьте Егорчику сообщение:</label><div id="right" ><span style="float: right;" id="count" ></span></div>
+                    <textarea id="textMessage" rows="0" cols="0" class="required" maxlength="200" th:field="*{message}"></textarea>
                     <div style="color:orange; font-size:12px" th:if="${#fields.hasErrors('message')}" th:errors="*{message}">Message error</div>
                     <div class="cleaner h10"></div>
 
@@ -76,7 +80,16 @@
                     <input type="reset" class="submit_btn"  id="reset" onclick="reset()" value="Очистить" />
 
                 </form>
+                    <script th:inline="javascript">
+                        const message = document.getElementById("textMessage");
+                        const count = document.getElementById("count");
+                        count.innerHTML= "0/"+message.maxLength;
+                    message.addEventListener("input",
+                        function(event){
+                        count.innerHTML= message.value.length+"/"+message.maxLength;
 
+                    });
+                    </script>
                 </div>
             </div>
 
@@ -122,7 +135,18 @@ console.log(maxDate);
           });
 
 </script>
-
+<!-- Скрипты для даты 3шт внизу-->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
+<script>
+    flatpickr("#birthdate", {
+        dateFormat: "Y-m-d",
+        altInput: true,
+        altFormat: "d.m.Y",
+        locale: "ru",
+        minDate: "1920-01-01"
+    });
+</script>
 
 <script src="/js/photo.js"></script>
 <script src="/js/deleteImage.js"></script>
