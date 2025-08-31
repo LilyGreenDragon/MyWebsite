@@ -1,0 +1,63 @@
+{
+  "Debug": true,
+  "ListenAddress": ":3000",
+  "HTTPAuthUser": "admin",
+  "HTTPAuthPassword": "admin",
+  "ReadOnly": false,
+
+  "MySQLTopologyUser": "monitor",
+  "MySQLTopologyPassword": "monitor_pass",
+  "MySQLTopologyHost": "mysql-master",
+  "MySQLTopologyPort": 3306,
+
+  "BackendDB": "mysql",
+  "MySQLOrchestratorHost": "orchestrator_db",
+  "MySQLOrchestratorPort": 3306,
+  "MySQLOrchestratorDatabase": "orchestrator",
+  "MySQLOrchestratorUser": "orchestrator",
+  "MySQLOrchestratorPassword": "orchestrator_pass",
+
+  "DiscoverByShowSlaveHosts": true,
+  "InstancePollSeconds": 5,
+
+  "EnableMasterFailover": true,
+  "RecoveryPeriodBlockSeconds": 30,
+  "RecoverMasterClusterFilters": ["*"],
+
+  "Recovery": {
+    "AutoMasterFailover": true,
+    "MasterFailoverDetachReplicaMasterHost": true,
+    "ApplyMySQLPromotionAfterMasterFailover": true,
+    "DetachLostSlavesAfterMasterFailover": true,
+    "FailMasterPromotionOnLagMinutes": 0
+  },
+
+  "PromotionIgnoreHostnameFilters": [],
+  "DelayMasterPromotionIfSQLThreadNotUpToDate": false,
+
+  "PostMasterFailoverProcesses": [
+    "/usr/local/orchestrator/proxysql_promote.sh {successorHost} {successorPort}"
+  ],
+
+  "ProxySQL": {
+    "Enable": true,
+    "APIHost": "proxysql",
+    "APIPort": 6032,
+    "APIUser": "admin",
+    "APIPassword": "admin",
+    "WriterHostgroup": 10,
+    "ReaderHostgroup": 20,
+    "UseWriterAsReader": true,
+    "PromoteSlave": true
+  },
+
+  "DiscoverySeeds": [
+    "mysql-master:3306",
+    "mysql-slave:3306"
+  ],
+
+  "HostnameResolveMethod": "none",
+  "Unresolve": true,
+  "DropAnonymousGTID": true,
+  "DiscoverByShowSlaveHosts": false
+}
