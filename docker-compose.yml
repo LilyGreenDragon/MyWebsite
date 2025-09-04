@@ -6,9 +6,6 @@ services:
       - net1
     environment:
       MYSQL_ROOT_PASSWORD: 147891
-      MYSQL_DATABASE: bootdb
-      MYSQL_USER: monitor
-      MYSQL_PASSWORD: monitor_pass
     volumes:
       - master_data:/var/lib/mysql
       - ./mysql_replication/master/my.cnf:/etc/mysql/conf.d/my.cnf
@@ -16,79 +13,108 @@ services:
     ports:
       - "3307:3306"
 
-  mysql-slave:
-      image: mysql:8.0
-      container_name: mysql-slave
-      networks:
-        - net1
-      environment:
-        MYSQL_ROOT_PASSWORD: 147892
-        MYSQL_DATABASE: bootdb
-        MYSQL_USER: monitor
-        MYSQL_PASSWORD: monitor_pass
-      volumes:
-        - slave_data:/var/lib/mysql
-        - ./mysql_replication/slave/my.cnf:/etc/mysql/conf.d/my.cnf
-        - ./mysql_replication/slave/init.sql:/docker-entrypoint-initdb.d/init.sql
-      depends_on:
-        - mysql-master
-      ports:
-        - "3308:3306"
+  mysql-slave1:
+    image: mysql:8.0
+    container_name: mysql-slave1
+    networks:
+      - net1
+    environment:
+      MYSQL_ROOT_PASSWORD: 147892
+    volumes:
+      - slave1_data:/var/lib/mysql
+      - ./mysql_replication/slave1/my.cnf:/etc/mysql/conf.d/my.cnf
+    depends_on:
+      - mysql-master
+    ports:
+      - "3308:3306"
+
+  mysql-slave2:
+    image: mysql:8.0
+    container_name: mysql-slave2
+    networks:
+      - net1
+    environment:
+      MYSQL_ROOT_PASSWORD: 147893
+    volumes:
+      - slave2_data:/var/lib/mysql
+      - ./mysql_replication/slave2/my.cnf:/etc/mysql/conf.d/my.cnf
+    depends_on:
+      - mysql-master
+    ports:
+      - "3309:3306"
 
   proxysql:
-      image: proxysql/proxysql:2.6.3
-      container_name: proxysql
-      networks:
-        - net1
-      ports:
-        - "6032:6032"
-        - "6033:6033"
-      volumes:
-        - ./mysql_replication/orchestrator/proxysql_promote.sh:/usr/local/bin/proxysql_promote.sh
-        - ./mysql_replication/proxysql.cnf:/etc/proxysql.cnf
-
-      entrypoint: [ "/usr/bin/proxysql", "-f", "-c", "/etc/proxysql.cnf" ]
+    image: proxysql/proxysql:2.6.3
+    container_name: proxysql
+    networks:
+      - net1
+    ports:
+      - "6032:6032"
+      - "6033:6033"
+    volumes:
+      - ./mysql_replication/proxysql.cnf:/etc/proxysql.cnf
+    entrypoint: [ "/usr/bin/proxysql", "-f", "-c", "/etc/proxysql.cnf" ]
 
   orchestrator:
-      image: openarkcode/orchestrator:latest
-      container_name: orchestrator
-      networks:
-        - net1
-      depends_on:
-        - mysql-master
-        - mysql-slave
-        - proxysql
-        - orchestrator_db
-      ports:
-        - "3000:3000"
-      volumes:
-        - ./mysql_replication/orchestrator/orchestrator.conf.json:/etc/orchestrator.conf.json
-        - ./mysql_replication/orchestrator/proxysql_promote.sh:/usr/local/orchestrator/proxysql_promote.sh
-      environment:
-        ORC_HTTP_USER: admin
-        ORC_HTTP_PASSWORD: admin
-      command: [ "/usr/local/orchestrator/orchestrator", "-config", "/etc/orchestrator.conf.json", "-debug", "http" ]
+    image: openarkcode/orchestrator:latest
+    container_name: orchestrator
+    networks:
+      - net1
+    depends_on:
+      - mysql-master
+      - mysql-slave1
+      - mysql-slave2
+      - proxysql
+      - orchestrator_db
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./mysql_replication/orchestrator/orchestrator.conf.json:/etc/orchestrator.conf.json
+    environment:
+      ORC_HTTP_USER: admin
+      ORC_HTTP_PASSWORD: admin
+    command: [ "/usr/local/orchestrator/orchestrator", "-config", "/etc/orchestrator.conf.json", "-debug", "http" ]
 
   orchestrator_db:
-      image: mysql:8.0
-      container_name: orchestrator_db
-      networks:
-        - net1
-      environment:
-        MYSQL_ROOT_PASSWORD: root_pass
-        MYSQL_DATABASE: orchestrator
-        MYSQL_USER: orchestrator
-        MYSQL_PASSWORD: orchestrator_pass
-      volumes:
-        - orchestrator_data:/var/lib/mysql
-        - ./mysql_replication/orchestrator/init.sql:/docker-entrypoint-initdb.d/init.sql
-      ports:
-        - "3309:3306"
+    image: mysql:8.0
+    container_name: orchestrator_db
+    networks:
+      - net1
+    environment:
+      MYSQL_ROOT_PASSWORD: root_pass
+      MYSQL_DATABASE: orchestrator
+      MYSQL_USER: orchestrator
+      MYSQL_PASSWORD: orchestrator_pass
+    volumes:
+      - orchestrator_data:/var/lib/mysql
+      - ./mysql_replication/orchestrator/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3310:3306"
+
+  redis:
+   image: redis:7
+   container_name: redis
+   ports:
+    - "6379:6379"
+   networks:
+    - net1
+   volumes:
+    - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+    - redis_data:/data
+   command: redis-server /usr/local/etc/redis/redis.conf
 
 volumes:
-    master_data:
-    slave_data:
-    orchestrator_data:
+  master_data:
+  slave1_data:
+  slave2_data:
+  orchestrator_data:
+  redis_data:
+
 
 networks:
-    net1:
+  net1:
+
+
+
+
+

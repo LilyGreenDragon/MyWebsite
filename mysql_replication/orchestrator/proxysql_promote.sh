@@ -1,21 +1,58 @@
-#!/bin/sh
+#!/bin/bash
+#
+# proxysql_promote.sh <new_master_host> <new_master_port>
+#
+# Этот скрипт вызывается Orchestrator после failover.
+# Он обновляет ProxySQL: новый мастер попадает в writer HG (10), остальные - в reader HG (20).
+#
 
-NEW_MASTER_HOST=$1
-NEW_MASTER_PORT=$2
+NEW_MASTER="$1"
+NEW_MASTER_PORT="$2"
 
-# Снять read_only на новом мастере
-mysql -h "$NEW_MASTER_HOST" -P "$NEW_MASTER_PORT" -u monitor -pmonitor_pass -e "SET GLOBAL read_only=OFF;"
+# ProxySQL доступ
+PROXYSQL_HOST="proxysql"
+PROXYSQL_PORT="6032"
+PROXYSQL_USER="admin"
+PROXYSQL_PASS="admin"
 
-# Обновляем hostgroup в ProxySQL через SQL-интерфейс
-mysql -uadmin -padmin -h proxysql -P6032 <<EOF
--- Новый мастер в writer hostgroup
-UPDATE mysql_servers SET hostgroup_id=10 WHERE hostname='$NEW_MASTER_HOST' AND port=$NEW_MASTER_PORT;
+# Orchestrator API
+ORC_API="http://orchestrator:3000/api"
 
--- Все остальные переводим в reader hostgroup
-UPDATE mysql_servers SET hostgroup_id=20 WHERE NOT (hostname='$NEW_MASTER_HOST' AND port=$NEW_MASTER_PORT);
+# Хостгруппы
+WRITER_HG=10
+READER_HG=20
 
-LOAD MYSQL SERVERS TO RUNTIME;
-SAVE MYSQL SERVERS TO DISK;
-EOF
+echo "[INFO] Новый мастер: $NEW_MASTER:$NEW_MASTER_PORT"
 
-echo "ProxySQL updated: $NEW_MASTER_HOST:$NEW_MASTER_PORT → writer (HG=10)"
+# 1. Получаем список всех живых инстансов кластера из Orchestrator
+CLUSTER=$(curl -s "$ORC_API/cluster/$NEW_MASTER/$NEW_MASTER_PORT" | jq -r '.[].Key.Hostname + ":" + (.[].Key.Port|tostring)')
+
+if [ -z "$CLUSTER" ]; then
+    echo "[ERROR] Не удалось получить список нод из Orchestrator"
+    exit 1
+fi
+
+# 2. Чистим все старые записи в ProxySQL
+mysql -h $PROXYSQL_HOST -P $PROXYSQL_PORT -u $PROXYSQL_USER -p$PROXYSQL_PASS -e "DELETE FROM mysql_servers;"
+
+# 3. Добавляем новый мастер
+mysql -h $PROXYSQL_HOST -P $PROXYSQL_PORT -u $PROXYSQL_USER -p$PROXYSQL_PASS -e "
+    INSERT INTO mysql_servers (hostgroup_id, hostname, port, status)
+    VALUES ($WRITER_HG, '$NEW_MASTER', $NEW_MASTER_PORT, 'ONLINE');"
+
+# 4. Добавляем остальных как реплики
+for NODE in $CLUSTER; do
+    HOST=$(echo $NODE | cut -d: -f1)
+    PORT=$(echo $NODE | cut -d: -f2)
+
+    if [[ "$HOST" != "$NEW_MASTER" || "$PORT" != "$NEW_MASTER_PORT" ]]; then
+        mysql -h $PROXYSQL_HOST -P $PROXYSQL_PORT -u $PROXYSQL_USER -p$PROXYSQL_PASS -e "
+            INSERT INTO mysql_servers (hostgroup_id, hostname, port, status)
+            VALUES ($READER_HG, '$HOST', $PORT, 'ONLINE');"
+    fi
+done
+
+# 5. Сохраняем изменения
+mysql -h $PROXYSQL_HOST -P $PROXYSQL_PORT -u $PROXYSQL_USER -p$PROXYSQL_PASS -e "LOAD MYSQL SERVERS TO RUNTIME; SAVE MYSQL SERVERS TO DISK;"
+
+echo "[INFO] ProxySQL обновлен: мастер → $NEW_MASTER:$NEW_MASTER_PORT"

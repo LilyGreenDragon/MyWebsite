@@ -3,7 +3,12 @@
   "ListenAddress": ":3000",
   "HTTPAuthUser": "admin",
   "HTTPAuthPassword": "admin",
-  "ReadOnly": false,
+  "HostnameResolveMethod": "none",
+  "UseSuperReadOnly": true,
+  "Unresolve": true,
+  "MySQLHostnameResolve": false,
+  "DetectReplicationLagQuery": "select 0",
+  "MySQLHostnameResolveMethod": "report_host",
 
   "MySQLTopologyUser": "monitor",
   "MySQLTopologyPassword": "monitor_pass",
@@ -21,7 +26,7 @@
   "InstancePollSeconds": 5,
 
   "EnableMasterFailover": true,
-  "RecoveryPeriodBlockSeconds": 30,
+  "RecoveryPeriodBlockSeconds": 5,
   "RecoverMasterClusterFilters": ["*"],
 
   "Recovery": {
@@ -29,14 +34,12 @@
     "MasterFailoverDetachReplicaMasterHost": true,
     "ApplyMySQLPromotionAfterMasterFailover": true,
     "DetachLostSlavesAfterMasterFailover": true,
-    "FailMasterPromotionOnLagMinutes": 0
+    "FailMasterPromotionOnLagMinutes": 1,
+    "DelayMasterPromotionIfSQLThreadNotUpToDate": false
   },
 
-  "PromotionIgnoreHostnameFilters": [],
-  "DelayMasterPromotionIfSQLThreadNotUpToDate": false,
-
-  "PostMasterFailoverProcesses": [
-    "/usr/local/orchestrator/proxysql_promote.sh {successorHost} {successorPort}"
+  "PromotionIgnoreHostnameFilters": [
+    "^[0-9a-f]{12}$"
   ],
 
   "ProxySQL": {
@@ -44,7 +47,7 @@
     "APIHost": "proxysql",
     "APIPort": 6032,
     "APIUser": "admin",
-    "APIPassword": "admin",
+    "APIPassword": "admin_pass",
     "WriterHostgroup": 10,
     "ReaderHostgroup": 20,
     "UseWriterAsReader": true,
@@ -53,11 +56,7 @@
 
   "DiscoverySeeds": [
     "mysql-master:3306",
-    "mysql-slave:3306"
-  ],
-
-  "HostnameResolveMethod": "none",
-  "Unresolve": true,
-  "DropAnonymousGTID": true,
-  "DiscoverByShowSlaveHosts": false
+    "mysql-slave1:3306",
+    "mysql-slave2:3306"
+  ]
 }

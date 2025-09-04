@@ -2,7 +2,7 @@ datadir="/var/lib/proxysql"
 
 admin_variables=
 {
-    admin_credentials="admin:admin"
+    admin_credentials="admin:admin_pass"
     mysql_ifaces="0.0.0.0:6032"
 }
 
@@ -19,21 +19,19 @@ mysql_variables=
     monitor_connect_interval=500
     monitor_ping_interval=500
     monitor_read_only_interval=500
-    monitor_writer_is_also_reader=1
     server_connect_timeout=2000
     mysql-max_conn_errors=2
     mysql-connection_keepalive=1000
+    monitor_writer_is_also_reader=0
+    mysql-shun_on_failures=3
+    mysql-free_connections_pct=20
 }
 
-mysql_servers =
-(
-    { address="mysql-master", port=3306, hostgroup=10 },
-    { address="mysql-slave",  port=3306, hostgroup=20 }
-)
+mysql_servers = ()
 
 mysql_users =
 (
-    { username = "app", password = "14789", default_hostgroup = 10, active = 1, fast_forward=1  }
+    { username = "app", password = "14789", default_hostgroup = 10, active = 1 }
 )
 
 mysql_replication_hostgroups =
