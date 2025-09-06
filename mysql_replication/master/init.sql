@@ -10,7 +10,13 @@ GRANT PROCESS, REPLICATION SLAVE, REPLICATION CLIENT, RELOAD, SELECT ON *.* TO '
 
 -- Пользователь Orchestrator
 CREATE USER IF NOT EXISTS 'orchestrator'@'%' IDENTIFIED BY 'orchestrator_pass';
-GRANT PROCESS, REPLICATION CLIENT, RELOAD ON *.* TO 'orchestrator'@'%';
+GRANT PROCESS, RELOAD, REPLICATION SLAVE, REPLICATION CLIENT,
+      REPLICATION_SLAVE_ADMIN,  -- для CHANGE/RESET REPLICATION
+      CONNECTION_ADMIN,         -- чтобы рвать коннекты при свитче
+      SYSTEM_VARIABLES_ADMIN,   -- чтобы менять read_only/super_read_only
+      SESSION_VARIABLES_ADMIN,
+      BINLOG_ADMIN              -- на всякий случай для бинлог-операций
+ON *.* TO 'orchestrator'@'%';
 
 -- Пользователь приложения для ProxySQL
 CREATE USER IF NOT EXISTS 'app'@'%' IDENTIFIED BY '14789';

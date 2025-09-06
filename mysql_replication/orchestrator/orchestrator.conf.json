@@ -9,9 +9,10 @@
   "MySQLHostnameResolve": false,
   "DetectReplicationLagQuery": "select 0",
   "MySQLHostnameResolveMethod": "report_host",
+  "RaftEnabled": false,
 
-  "MySQLTopologyUser": "monitor",
-  "MySQLTopologyPassword": "monitor_pass",
+  "MySQLTopologyUser": "orchestrator",
+  "MySQLTopologyPassword": "orchestrator_pass",
   "MySQLTopologyHost": "mysql-master",
   "MySQLTopologyPort": 3306,
 

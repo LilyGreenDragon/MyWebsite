@@ -1,4 +1,4 @@
--- создаём базу для Orchestrator (если не указана через MYSQL_DATABASE)
+-- создаём базу для Orchestrator
 CREATE DATABASE IF NOT EXISTS orchestrator CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- создаём пользователя orchestrator
