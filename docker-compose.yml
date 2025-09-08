@@ -1,45 +1,25 @@
 services:
  orchestrator:
-    image: openarkcode/orchestrator:latest
-    container_name: orchestrator
-    networks:
-      - net1
-    extra_hosts:
-      - "mysql-master:172.18.0.2"
-      - "mysql-slave1:172.18.0.3"
-      - "mysql-slave2:172.18.0.4"
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./mysql_replication/orchestrator/orchestrator.conf.json:/etc/orchestrator.conf.json
-    environment:
-      ORC_HTTP_USER: admin
-      ORC_HTTP_PASSWORD: admin
-    command: [ "/usr/local/orchestrator/orchestrator", "-config", "/etc/orchestrator.conf.json", "-debug", "http"]
-
- orchestrator_db:
-  image: mysql:8.0
-  container_name: orchestrator_db
+  image: openarkcode/orchestrator:latest
+  container_name: orchestrator
   networks:
     - net1
-  environment:
-    MYSQL_ROOT_PASSWORD: root_pass
-    MYSQL_DATABASE: orchestrator
-    MYSQL_USER: orchestrator
-    MYSQL_PASSWORD: orchestrator_pass
-  volumes:
-    - orchestrator_db:/var/lib/mysql
-    - ./mysql_replication/orchestrator/init.sql:/docker-entrypoint-initdb.d/init.sql
+  extra_hosts:
+  - "mysql-master:172.18.0.2"
+  - "mysql-slave1:172.18.0.3"
+  - "mysql-slave2:172.18.0.4"
   ports:
-    - "3310:3306"
-
-volumes:
-  orchestrator_db:
+      - "3000:3000"
+  volumes:
+      - ./mysql_replication/orchestrator/orchestrator.conf.json:/etc/orchestrator.conf.json
+      - ./mysql_replication/orchestrator/proxysql_promote.sh:/usr/local/orchestrator/proxysql_promote.sh
+  environment:
+      ORC_HTTP_USER: admin
+      ORC_HTTP_PASSWORD: admin
+  command: [ "/usr/local/orchestrator/orchestrator", "-config", "/etc/orchestrator.conf.json", "-debug", "http" ]
 
 networks:
   net1:
-
-
 
 
 

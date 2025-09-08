@@ -43,17 +43,11 @@
     "^[0-9a-f]{12}$"
   ],
 
-  "ProxySQL": {
-    "Enable": true,
-    "APIHost": "proxysql",
-    "APIPort": 6032,
-    "APIUser": "admin",
-    "APIPassword": "admin_pass",
-    "WriterHostgroup": 10,
-    "ReaderHostgroup": 20,
-    "UseWriterAsReader": true,
-    "PromoteSlave": true
-  },
+  "PostFailoverProcesses": [
+    "echo 'Failed over from ${ORC_FAILOVER_OLD_MASTER_HOST}:${ORC_FAILOVER_OLD_MASTER_PORT} to ${ORC_FAILOVER_MASTER_HOST}:${ORC_FAILOVER_MASTER_PORT} in cluster ${ORC_FAILOVER_CLUSTER_ALIAS}. Executing PostFailover script' >> /tmp/orchestrator-post-failover.log",
+    "/usr/local/orchestrator/proxysql_promote.sh"
+  ],
+
 
   "DiscoverySeeds": [
     "mysql-master:3306",
