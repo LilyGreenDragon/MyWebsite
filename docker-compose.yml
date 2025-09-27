@@ -1,25 +1,26 @@
 services:
- orchestrator:
-  image: openarkcode/orchestrator:latest
-  container_name: orchestrator
-  networks:
-    - net1
-  extra_hosts:
-  - "mysql-master:172.18.0.2"
-  - "mysql-slave1:172.18.0.3"
-  - "mysql-slave2:172.18.0.4"
-  ports:
-      - "3000:3000"
-  volumes:
-      - ./mysql_replication/orchestrator/orchestrator.conf.json:/etc/orchestrator.conf.json
-      - ./mysql_replication/orchestrator/proxysql_promote.sh:/usr/local/orchestrator/proxysql_promote.sh
-  environment:
-      ORC_HTTP_USER: admin
-      ORC_HTTP_PASSWORD: admin
-  command: [ "/usr/local/orchestrator/orchestrator", "-config", "/etc/orchestrator.conf.json", "-debug", "http" ]
+  orchestrator:
+    image: openarkcode/orchestrator:latest
+    container_name: orchestrator
+    networks:
+      - net1
+    extra_hosts:
+     - "mysql-master:172.18.0.2"
+     - "mysql-slave1:172.18.0.3"
+     - "mysql-slave2:172.18.0.4"
+
+    ports:
+        - "3000:3000"
+    volumes:
+        - ./mysql_replication/orchestrator/orchestrator.conf.json:/etc/orchestrator.conf.json
+        - ./mysql_replication/orchestrator/proxysql_promote.sh:/usr/local/orchestrator/proxysql_promote.sh
+    environment:
+        ORC_HTTP_USER: admin
+        ORC_HTTP_PASSWORD: admin
+    command: [ "/usr/local/orchestrator/orchestrator", "-config", "/etc/orchestrator.conf.json", "-debug", "http" ]
+
 
 networks:
   net1:
-
 
 

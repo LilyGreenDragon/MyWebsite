@@ -13,6 +13,10 @@ mysql_variables=
     scheduler_threads=2
     max_connections=2048
     interfaces="0.0.0.0:6033"
+    connect_timeout_server=10000
+    connect_timeout_server_max=30000
+    poll_timeout=2000
+    ping_timeout_server=1000
 
     monitor_username="monitor"
     monitor_password="monitor_pass"
@@ -32,10 +36,11 @@ mysql_servers = ()
 
 mysql_users =
 (
-    { username = "app", password = "14789", default_hostgroup = 10, active = 1 }
+    { username = "app", password = "14789", default_hostgroup = 10, active = 1 },
+    { username = "monitor", password = "monitor_pass", default_hostgroup = 0, active = 1 }
 )
 
-mysql_replication_hostgroups =
-(
-    { writer_hostgroup=10, reader_hostgroup=20, check_type="read_only" }
-)
+#mysql_replication_hostgroups =
+#(
+#    { writer_hostgroup=10, reader_hostgroup=20, check_type="read_only" }
+#)
