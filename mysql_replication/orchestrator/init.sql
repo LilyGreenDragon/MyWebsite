@@ -6,4 +6,3 @@ CREATE USER IF NOT EXISTS 'orchestrator'@'%' IDENTIFIED BY 'orchestrator_pass';
 GRANT ALL PRIVILEGES ON orchestrator.* TO 'orchestrator'@'%';
 
 FLUSH PRIVILEGES;
-

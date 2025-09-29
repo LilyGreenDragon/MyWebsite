@@ -43,8 +43,11 @@
     "^[0-9a-f]{12}$"
   ],
 
+  "PreFailoverProcesses": [
+    "/usr/local/orchestrator/pre_failover.sh"
+  ],
   "PostFailoverProcesses": [
-    "/usr/local/orchestrator/proxysql_promote.sh"
+    "/usr/local/orchestrator/post_failover.sh"
   ],
 
 
