@@ -32,42 +32,28 @@ env | grep ORC_ | sort
 echo "-----------------------------------------"
 echo "New Master: ${ORC_SUCCESSOR_HOST}:${ORC_SUCCESSOR_PORT}"
 echo "Old Master: ${ORC_FAILED_HOST}:${ORC_FAILED_PORT}"
-} >> $LOG_FILE 2>&1
 
-
-# --- Новый мастер ---
+# --- Все серверы переводим в hostgroup 20 ---
 mysql -h proxysql -P 6032 -u remote_admin -premote_pass -e "
-UPDATE mysql_servers SET hostgroup_id=10, status='ONLINE'
-WHERE hostname='${ORC_SUCCESSOR_HOST}';
-" >> $LOG_FILE 2>&1
-
-# --- Все остальные слейвы → reader ---
-mysql -h proxysql -P 6032 -u remote_admin -premote_pass -e "
-UPDATE mysql_servers SET hostgroup_id=20, status='ONLINE'
-WHERE hostname!='${ORC_SUCCESSOR_HOST}';
-" >> $LOG_FILE 2>&1
-
-mysql -h proxysql -P 6032 -u remote_admin -premote_pass -e "
-    UPDATE mysql_servers SET status='OFFLINE_HARD'
-    WHERE hostname='${ORC_FAILED_HOST}';
-    " >> $LOG_FILE 2>&1
-
-mysql -h proxysql -P 6032 -u remote_admin -premote_pass -e "
-LOAD MYSQL SERVERS TO RUNTIME;
-SAVE MYSQL SERVERS TO DISK;
-
-SELECT 'ProxySQL configuration updated' as result;
-SELECT hostgroup_id, hostname, port, status FROM mysql_servers ORDER BY hostgroup_id, hostname;
-SELECT hostgroup_id, hostname, port, status FROM runtime_mysql_servers ORDER BY hostgroup_id, hostname;
-" >> $LOG_FILE 2>&1
+UPDATE mysql_servers
+SET hostgroup_id = 20,
+    status = CASE
+        WHEN hostname = '${ORC_FAILED_HOST}' THEN 'OFFLINE_HARD'
+        ELSE 'ONLINE'
+    END;"
 
 # Проверка кода возврата mysql
 if [ $? -ne 0 ]; then
-  echo "ProxySQL update failed!" >> $LOG_FILE
+  echo "ProxySQL update(all hostname in hostgroup 20) failed!"
   exit 1
 fi
 
-echo "Script completed at $(date)" >> $LOG_FILE
+echo "All servers moved to read-only mode"
+
+# --- Применяем изменения ---
+mysql -h proxysql -P 6032 -u remote_admin -premote_pass -e "
+LOAD MYSQL SERVERS TO RUNTIME;
+SAVE MYSQL SERVERS TO DISK;"
 
 # =================================================================
 # ФИКСАЦИЯ ДВОЙНОГО СЛЕША В РЕПЛИКАЦИИ
@@ -83,7 +69,7 @@ SELECT hostname
 FROM runtime_mysql_servers
 WHERE hostgroup_id = 20
 AND status = 'ONLINE'
-AND hostname != '${ORC_FAILED_HOST}';")
+AND hostname != '${ORC_SUCCESSOR_HOST}';")
 
 if [ -z "$SLAVES" ]; then
     echo "No slaves found in ProxySQL configuration"
@@ -97,8 +83,8 @@ for SLAVE in $SLAVES; do
     echo "Checking $SLAVE..."
 
     # Получаем Master_Host через прямое подключение к MySQL
-    MASTER_HOST=$(mysql -h $SLAVE -u root -p147891 -e "SHOW REPLICA STATUS\G" 2>/dev/null | grep -i "Master_Host" | awk '{print $2}')
-
+    MASTER_HOST=$(mysql -h $SLAVE -u repl -prepl_pass -e "SHOW REPLICA STATUS\G" 2>/dev/null | grep -i "Source_Host" | awk '{print $2}')
+#Если надо проверить в docker то docker exec orchestrator mysql -h mysql-master -u repl -prepl_pass -e "SHOW REPLICA STATUS\G" 2>/dev/null | grep -i "Source_Host" | awk '{print $2}'
     if [ -z "$MASTER_HOST" ]; then
         echo "❌ $SLAVE: No replication configured or cannot connect"
         continue
@@ -111,7 +97,7 @@ for SLAVE in $SLAVES; do
         echo "Fixing: $MASTER_HOST -> ${MASTER_HOST#//}"
 
         # Исправляем убирая // через прямое подключение
-        mysql -h $SLAVE -u root -p147891 -e "
+        mysql -h $SLAVE -u repl -prepl_pass -e "
         STOP REPLICA;
         CHANGE REPLICATION SOURCE TO
           SOURCE_HOST='${MASTER_HOST#//}',
@@ -126,17 +112,22 @@ for SLAVE in $SLAVES; do
 
             # Проверяем что исправление применилось
             sleep 3
-            NEW_MASTER_HOST=$(mysql -h $SLAVE -u root -p147891 -e "SHOW REPLICA STATUS\G" 2>/dev/null | grep -i "Master_Host" | awk '{print $2}')
-            REPLICA_IO=$(mysql -h $SLAVE -u root -p147891 -sN -e "SHOW REPLICA STATUS\G" 2>/dev/null | grep -i "Slave_IO_Running" | awk '{print $2}')
-            REPLICA_SQL=$(mysql -h $SLAVE -u root -p147891 -sN -e "SHOW REPLICA STATUS\G" 2>/dev/null | grep -i "Slave_SQL_Running" | awk '{print $2}')
+            NEW_MASTER_HOST=$(mysql -h $SLAVE -u repl -prepl_pass -e "SHOW REPLICA STATUS\G" 2>/dev/null | grep -i "Source_Host" | awk '{print $2}')
+            REPLICA_IO=$(mysql -h $SLAVE -u repl -prepl_pass -sN -e "SHOW REPLICA STATUS\G" 2>/dev/null | grep -i "Replica_IO_Running" | awk '{print $2}')
+            REPLICA_SQL=$(mysql -h $SLAVE -u repl -prepl_pass -sN -e "SHOW REPLICA STATUS\G" 2>/dev/null | grep -i "Replica_SQL_Running" | awk '{print $2}')
 
             echo "✅ After fix - Source_Host: $NEW_MASTER_HOST, IO: $REPLICA_IO, SQL: $REPLICA_SQL"
         else
             echo "❌ Failed to fix replication on $SLAVE"
         fi
     else
-        echo "✅ $SLAVE has correct Source_Host: $MASTER_HOST"
+        echo "✅ $SLAVE has correct Master_Host: $MASTER_HOST"
     fi
+
+    mysql -h $SLAVE -u repl -prepl_pass -e "
+    SET GLOBAL read_only = ON;
+    SET GLOBAL super_read_only = ON;"
+
 done
 
 echo "Double slash fix completed at $(date)"
@@ -149,7 +140,7 @@ echo "=== Stopping replication on new master ==="
 echo "Time: $(date)"
 
 # Останавливаем репликацию на новом мастере через прямое подключение
-mysql -h $ORC_SUCCESSOR_HOST -u root -p147891 -e "
+mysql -h $ORC_SUCCESSOR_HOST -u repl -prepl_pass -e "
 STOP REPLICA;
 RESET REPLICA ALL;
 " 2>/dev/null
@@ -161,12 +152,39 @@ else
 fi
 
 # Проверяем что репликация остановлена
-REPLICA_STATUS=$(mysql -h $ORC_SUCCESSOR_HOST -u root -p147891 -sN -e "SHOW REPLICA STATUS\G" 2>/dev/null | wc -l)
+REPLICA_STATUS=$(mysql -h $ORC_SUCCESSOR_HOST -u repl -prepl_pass -sN -e "SHOW REPLICA STATUS\G" 2>/dev/null | wc -l)
 
 if [ "$REPLICA_STATUS" -eq 0 ]; then
     echo "✅ Confirmed: No replication running on new master"
 else
     echo "❌ Replication still running on new master"
 fi
+
+ mysql -h $ORC_SUCCESSOR_HOST -u repl -prepl_pass -e "
+    SET GLOBAL read_only = OFF;
+    SET GLOBAL super_read_only = OFF;"
+
+# --- Новый мастер ---
+mysql -h proxysql -P 6032 -u remote_admin -premote_pass -e "
+UPDATE mysql_servers SET hostgroup_id=10, status='ONLINE'
+WHERE hostname='${ORC_SUCCESSOR_HOST}';"
+
+# Проверка кода возврата mysql
+if [ $? -ne 0 ]; then
+  echo "ProxySQL update(new master in hostgroup_id=10) failed!"
+  exit 1
+fi
+
+# --- Применяем изменения ---
+mysql -h proxysql -P 6032 -u remote_admin -premote_pass -e "
+LOAD MYSQL SERVERS TO RUNTIME;
+SAVE MYSQL SERVERS TO DISK;"
+
+mysql -h proxysql -P 6032 -u remote_admin -premote_pass -e "
+SELECT 'ProxySQL configuration updated' as result;
+SELECT hostgroup_id, hostname, port, status FROM mysql_servers ORDER BY hostgroup_id, hostname;
+SELECT hostgroup_id, hostname, port, status FROM runtime_mysql_servers ORDER BY hostgroup_id, hostname;"
+
+echo "Script completed at $(date)"
 
 } >> $LOG_FILE 2>&1
