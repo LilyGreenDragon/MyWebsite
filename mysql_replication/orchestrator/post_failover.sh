@@ -38,29 +38,28 @@ mysql -h proxysql -P 6032 -u remote_admin -premote_pass -e "
 UPDATE mysql_servers
 SET hostgroup_id = 20,
     status = CASE
-        WHEN hostname = '${ORC_FAILED_HOST}' THEN 'OFFLINE_HARD'
+        WHEN hostname = '${ORC_FAILED_HOST}' AND port='${ORC_FAILED_PORT}' THEN 'OFFLINE_HARD'
         ELSE 'ONLINE'
     END;"
 
 # Проверка кода возврата mysql
 if [ $? -ne 0 ]; then
-  echo "ProxySQL update(all hostname in hostgroup 20) failed!"
+  echo "ProxySQL update(all hostname in hostgroup 20,status=ONLINE, former MASTER status=OFFLINE_HARD) failed!"
   exit 1
+else
+  echo "All servers moved to read-only mode(all hostname in hostgroup 20,status=ONLINE, former MASTER status=OFFLINE_HARD)"
 fi
-
-echo "All servers moved to read-only mode"
 
 # --- Применяем изменения ---
 mysql -h proxysql -P 6032 -u remote_admin -premote_pass -e "
 LOAD MYSQL SERVERS TO RUNTIME;
 SAVE MYSQL SERVERS TO DISK;"
-
+sleep 10
 # =================================================================
 # ФИКСАЦИЯ ДВОЙНОГО СЛЕША В РЕПЛИКАЦИИ
 # =================================================================
 
 echo "=== Fixing double slash in replication ==="
-echo "Time: $(date)"
 
 # Автоматически определяем все слейвы из ProxySQL
 echo "Detecting slaves from ProxySQL..."
@@ -77,14 +76,16 @@ if [ -z "$SLAVES" ]; then
 fi
 
 echo "Found slaves: $SLAVES"
+sleep 10
 
 # Исправляем на всех обнаруженных слейвах
+# при команде for SLAVE in $SLAVES; hostname не должно содержать пробелы
 for SLAVE in $SLAVES; do
     echo "Checking $SLAVE..."
 
     # Получаем Master_Host через прямое подключение к MySQL
     MASTER_HOST=$(mysql -h $SLAVE -u repl -prepl_pass -e "SHOW REPLICA STATUS\G" 2>/dev/null | grep -i "Source_Host" | awk '{print $2}')
-#Если надо проверить в docker то docker exec orchestrator mysql -h mysql-master -u repl -prepl_pass -e "SHOW REPLICA STATUS\G" 2>/dev/null | grep -i "Source_Host" | awk '{print $2}'
+#Если надо проверить в докер то docker exec -it orchestrator mysql -h mysql-slave1 -P 3306 -u repl -prepl_pass -e "SHOW REPLICA STATUS\G" 2>/dev/null | grep -i "Source_Host" | awk '{print $2}'
     if [ -z "$MASTER_HOST" ]; then
         echo "❌ $SLAVE: No replication configured or cannot connect"
         continue
@@ -94,7 +95,6 @@ for SLAVE in $SLAVES; do
 
     if [[ "$MASTER_HOST" == //* ]]; then
         echo "❌ Found double slash on $SLAVE: $MASTER_HOST"
-        echo "Fixing: $MASTER_HOST -> ${MASTER_HOST#//}"
 
         # Исправляем убирая // через прямое подключение
         mysql -h $SLAVE -u repl -prepl_pass -e "
@@ -104,19 +104,18 @@ for SLAVE in $SLAVES; do
           SOURCE_USER='repl',
           SOURCE_PASSWORD='repl_pass',
           SOURCE_AUTO_POSITION=1;
-        START REPLICA;
-        " 2>/dev/null
+        START REPLICA;"
 
         if [ $? -eq 0 ]; then
             echo "✅ Fixed replication on $SLAVE"
 
             # Проверяем что исправление применилось
-            sleep 3
+            sleep 10
             NEW_MASTER_HOST=$(mysql -h $SLAVE -u repl -prepl_pass -e "SHOW REPLICA STATUS\G" 2>/dev/null | grep -i "Source_Host" | awk '{print $2}')
             REPLICA_IO=$(mysql -h $SLAVE -u repl -prepl_pass -sN -e "SHOW REPLICA STATUS\G" 2>/dev/null | grep -i "Replica_IO_Running" | awk '{print $2}')
             REPLICA_SQL=$(mysql -h $SLAVE -u repl -prepl_pass -sN -e "SHOW REPLICA STATUS\G" 2>/dev/null | grep -i "Replica_SQL_Running" | awk '{print $2}')
 
-            echo "✅ After fix - Source_Host: $NEW_MASTER_HOST, IO: $REPLICA_IO, SQL: $REPLICA_SQL"
+            echo "✅ After fix - Master_Host: $NEW_MASTER_HOST, IO: $REPLICA_IO, SQL: $REPLICA_SQL"
         else
             echo "❌ Failed to fix replication on $SLAVE"
         fi
@@ -127,7 +126,7 @@ for SLAVE in $SLAVES; do
     mysql -h $SLAVE -u repl -prepl_pass -e "
     SET GLOBAL read_only = ON;
     SET GLOBAL super_read_only = ON;"
-
+sleep 10
 done
 
 echo "Double slash fix completed at $(date)"
@@ -137,19 +136,18 @@ echo "Double slash fix completed at $(date)"
 # =================================================================
 
 echo "=== Stopping replication on new master ==="
-echo "Time: $(date)"
 
 # Останавливаем репликацию на новом мастере через прямое подключение
 mysql -h $ORC_SUCCESSOR_HOST -u repl -prepl_pass -e "
-STOP REPLICA;
-RESET REPLICA ALL;
-" 2>/dev/null
+STOP REPLICA;"
+
 
 if [ $? -eq 0 ]; then
     echo "✅ Replication stopped on new master: $ORC_SUCCESSOR_HOST"
 else
     echo "⚠️  Failed to stop replication on new master"
 fi
+sleep 10
 
 # Проверяем что репликация остановлена
 REPLICA_STATUS=$(mysql -h $ORC_SUCCESSOR_HOST -u repl -prepl_pass -sN -e "SHOW REPLICA STATUS\G" 2>/dev/null | wc -l)
@@ -160,25 +158,30 @@ else
     echo "❌ Replication still running on new master"
 fi
 
- mysql -h $ORC_SUCCESSOR_HOST -u repl -prepl_pass -e "
-    SET GLOBAL read_only = OFF;
-    SET GLOBAL super_read_only = OFF;"
+sleep 10
+mysql -h $ORC_SUCCESSOR_HOST -u repl -prepl_pass -e "
+    SET GLOBAL super_read_only = OFF;
+    SET GLOBAL read_only = OFF;"
 
+sleep 10
 # --- Новый мастер ---
 mysql -h proxysql -P 6032 -u remote_admin -premote_pass -e "
 UPDATE mysql_servers SET hostgroup_id=10, status='ONLINE'
-WHERE hostname='${ORC_SUCCESSOR_HOST}';"
+WHERE hostname='${ORC_SUCCESSOR_HOST}' AND port='${ORC_SUCCESSOR_PORT}';"
 
 # Проверка кода возврата mysql
 if [ $? -ne 0 ]; then
   echo "ProxySQL update(new master in hostgroup_id=10) failed!"
   exit 1
+else
+  echo "New master in hostgroup_id=10"
 fi
 
 # --- Применяем изменения ---
 mysql -h proxysql -P 6032 -u remote_admin -premote_pass -e "
 LOAD MYSQL SERVERS TO RUNTIME;
 SAVE MYSQL SERVERS TO DISK;"
+sleep 10
 
 mysql -h proxysql -P 6032 -u remote_admin -premote_pass -e "
 SELECT 'ProxySQL configuration updated' as result;

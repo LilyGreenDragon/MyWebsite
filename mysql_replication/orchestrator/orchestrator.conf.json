@@ -27,7 +27,7 @@
   "InstancePollSeconds": 5,
 
   "EnableMasterFailover": true,
-  "RecoveryPeriodBlockSeconds": 5,
+  "RecoveryPeriodBlockSeconds": 120,
   "RecoverMasterClusterFilters": ["*"],
 
   "Recovery": {
@@ -35,7 +35,7 @@
     "MasterFailoverDetachReplicaMasterHost": true,
     "ApplyMySQLPromotionAfterMasterFailover": true,
     "DetachLostSlavesAfterMasterFailover": true,
-    "FailMasterPromotionOnLagMinutes": 1,
+    "FailMasterPromotionOnLagMinutes": 2,
     "DelayMasterPromotionIfSQLThreadNotUpToDate": false
   },
 
@@ -43,12 +43,6 @@
     "^[0-9a-f]{12}$"
   ],
 
-  "PreFailoverProcesses": [
-    "/usr/local/orchestrator/pre_failover.sh"
-  ],
-  "PostFailoverProcesses": [
-    "/usr/local/orchestrator/post_failover.sh"
-  ],
 
 
   "DiscoverySeeds": [

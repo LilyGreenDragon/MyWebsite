@@ -1,6 +1,9 @@
 #!/bin/bash
 
 LOG_FILE="/tmp/orchestrator-pre-failover.log"
+# Очистка файла лога перед каждым запуском
+truncate -s 0 $LOG_FILE
+
 echo "=== BLOCKING WRITES BEFORE FAILOVER ===" >> $LOG_FILE
 echo "Time: $(date)" >> $LOG_FILE
 echo "Failed master: $ORC_FAILED_HOST:$ORC_FAILED_PORT" >> $LOG_FILE

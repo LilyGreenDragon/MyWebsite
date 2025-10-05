@@ -2,7 +2,7 @@ CREATE DATABASE IF NOT EXISTS bootdb;
 
 -- Пользователь для репликации
 CREATE USER IF NOT EXISTS 'repl'@'%' IDENTIFIED WITH mysql_native_password BY 'repl_pass';
-GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO 'repl'@'%';
+GRANT SUPER, REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO 'repl'@'%';
 
 -- Пользователь для мониторинга
 CREATE USER IF NOT EXISTS 'monitor'@'%' IDENTIFIED BY 'monitor_pass';
