@@ -9,19 +9,23 @@
   "MySQLHostnameResolve": false,
   "DetectReplicationLagQuery": "select 0",
   "MySQLHostnameResolveMethod": "report_host",
-  "RaftEnabled": false,
+
+  "BackendDB": "sqlite",
+  "SQLite3DataFile": "/usr/local/orchestrator/orchestrator.sqlite3",
+
+  "RaftEnabled": true,
+  "RaftDataDir": "/usr/local/orchestrator/raft",
+  "DefaultRaftPort": 10008,
+  "RaftNodes": [
+    "orchestrator1:10008",
+    "orchestrator2:10008",
+    "orchestrator3:10008"
+  ],
 
   "MySQLTopologyUser": "orchestrator",
   "MySQLTopologyPassword": "orchestrator_pass",
   "MySQLTopologyHost": "mysql-master",
   "MySQLTopologyPort": 3306,
-
-  "BackendDB": "mysql",
-  "MySQLOrchestratorHost": "orchestrator_db",
-  "MySQLOrchestratorPort": 3306,
-  "MySQLOrchestratorDatabase": "orchestrator",
-  "MySQLOrchestratorUser": "orchestrator",
-  "MySQLOrchestratorPassword": "orchestrator_pass",
 
   "DiscoverByShowSlaveHosts": true,
   "InstancePollSeconds": 5,
@@ -43,11 +47,42 @@
     "^[0-9a-f]{12}$"
   ],
 
-
-
   "DiscoverySeeds": [
     "mysql-master:3306",
     "mysql-slave1:3306",
     "mysql-slave2:3306"
-  ]
+  ],
+
+  "DiscoveryIgnoreReplicaHostnameFilters": [
+    "^[0-9a-f]{12}$"
+  ],
+
+  "FailMasterPromotionIfSQLThreadNotUpToDate": false,
+  "DelayMasterPromotionIfSQLThreadNotUpToDate": false,
+
+  "DetectClusterAliasQuery": "SELECT SUBSTRING_INDEX(@@hostname, '.', 1)",
+  "DetectDataCenterQuery": "SELECT SUBSTRING_INDEX(@@hostname, '.', -1)",
+  "DetectInstanceAliasQuery": "SELECT @@hostname",
+  "DetectSemiSyncEnforcedQuery": "SELECT @@global.rpl_semi_sync_master_timeout",
+
+  "SkipBinlogServerUnresolveCheck": true,
+  "ExpiryHostnameResolvesMinutes": 60,
+
+  "DetectPromotionRuleQuery": "",
+
+  "MasterFailoverDetachReplicaMasterHost": false,
+  "MasterFailoverDetachLostReplicasAfterMasterFailover": true,
+  "PostponeReplicaRecoveryOnLagMinutes": 0,
+
+  "CoMasterRecoveryMustPromoteOtherCoMaster": true,
+
+  "ApplyMySQLPromotionAfterMasterFailover": true,
+  "PreFailoverProcesses": [],
+  "PostFailoverProcesses": [],
+  "PostUnsuccessfulFailoverProcesses": [],
+  "PostMasterFailoverProcesses": [],
+
+  "GraphiteAddr": "",
+  "GraphitePath": "",
+  "GraphiteConvertHostnameDotsToUnderscores": true
 }

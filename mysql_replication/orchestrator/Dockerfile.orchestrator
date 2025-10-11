@@ -1,0 +1,27 @@
+FROM debian:bullseye
+
+RUN apt-get update && apt-get install -y \
+    wget \
+    curl \
+    sqlite3 \
+    mariadb-client \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV ORC_VERSION=3.2.6
+
+RUN wget -q https://github.com/openark/orchestrator/releases/download/v${ORC_VERSION}/orchestrator-${ORC_VERSION}-linux-amd64.tar.gz \
+    && tar -xzf orchestrator-${ORC_VERSION}-linux-amd64.tar.gz -C /usr/local/ \
+    && mv /usr/local/usr/local/orchestrator/orchestrator /usr/local/bin/orchestrator \
+    && chmod +x /usr/local/bin/orchestrator \
+    && rm -rf orchestrator-${ORC_VERSION}-linux-amd64.tar.gz /usr/local/usr
+
+RUN useradd -m orchestrator \
+    && mkdir -p /usr/local/orchestrator \
+    && chown orchestrator:orchestrator /usr/local/orchestrator
+
+WORKDIR /usr/local/orchestrator
+
+USER orchestrator
+
+ENTRYPOINT ["/usr/local/bin/orchestrator"]
+CMD ["-config", "/etc/orchestrator.conf.json", "-debug", "http"]

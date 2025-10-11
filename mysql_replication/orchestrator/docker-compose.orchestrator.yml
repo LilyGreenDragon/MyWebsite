@@ -1,0 +1,67 @@
+services:
+
+  orchestrator1:
+    build:
+      context: .
+      dockerfile: Dockerfile.orchestrator
+    container_name: orchestrator1
+    hostname: orchestrator1
+    volumes:
+      - ./conf/orchestrator1.conf.json:/etc/orchestrator.conf.json
+      - orchestrator_data1:/usr/local/orchestrator
+    networks:
+      - net1
+    ports:
+      - "3000:3000"
+    environment:
+      ORCHESTRATOR_NODE: orchestrator1
+      ORC_HTTP_USER: admin
+      ORC_HTTP_PASSWORD: admin
+
+
+  orchestrator2:
+    build:
+      context: .
+      dockerfile: Dockerfile.orchestrator
+    container_name: orchestrator2
+    hostname: orchestrator2
+    volumes:
+      - ./conf/orchestrator2.conf.json:/etc/orchestrator.conf.json
+      - orchestrator_data2:/usr/local/orchestrator
+    networks:
+      - net1
+    ports:
+      - "3001:3000"
+    environment:
+      ORCHESTRATOR_NODE: orchestrator2
+      ORC_HTTP_USER: admin
+      ORC_HTTP_PASSWORD: admin
+
+
+  orchestrator3:
+    build:
+      context: .
+      dockerfile: Dockerfile.orchestrator
+    container_name: orchestrator3
+    hostname: orchestrator3
+    volumes:
+      - ./conf/orchestrator3.conf.json:/etc/orchestrator.conf.json
+      - orchestrator_data3:/usr/local/orchestrator
+    networks:
+      - net1
+    ports:
+      - "3002:3000"
+    environment:
+      ORCHESTRATOR_NODE: orchestrator3
+      ORC_HTTP_USER: admin
+      ORC_HTTP_PASSWORD: admin
+
+
+volumes:
+  orchestrator_data1:
+  orchestrator_data2:
+  orchestrator_data3:
+
+networks:
+  net1:
+    external: true
