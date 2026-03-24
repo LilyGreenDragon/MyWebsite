@@ -80,6 +80,9 @@
                     <input type="reset" class="submit_btn"  id="reset" onclick="reset()" value="Очистить" />
 
                 </form>
+
+
+
                     <script th:inline="javascript">
                         const message = document.getElementById("textMessage");
                         const count = document.getElementById("count");
@@ -108,8 +111,12 @@
                     <input type="hidden" id="hiddenField2" th:field="*{photo}" />
                 </form>
      </br></br>
+                <form  id="formSchedule" th:method="GET" th:action="@{/schedule}" >
+                    <button type="submit" class="button" >Расписание занятий</button>
 
-                <div class="cleaner h30"></div>
+                </form>
+
+                <!-- <div class="cleaner h30"></div>-->
                 </div>
 
             <div class="cleaner"></div>

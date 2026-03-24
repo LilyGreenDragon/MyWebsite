@@ -1,0 +1,33 @@
+databaseChangeLog:
+  - changeSet:
+      id: rename-new_column-to-old_column-in-person
+      author: Lily
+      description: Переименование колонки new_column в old_column в таблице person
+
+      # Проверяем, что колонка new_column существует, а old_column еще нет
+      preConditions:
+        - onFail: HALT
+        - onError: HALT
+        - tableExists:
+            tableName: person
+        - columnExists:
+            tableName: person
+            columnName: new_column
+        - not:
+            columnExists:
+              tableName: person
+              columnName: old_column
+
+      changes:
+        - renameColumn:
+            tableName: person
+            oldColumnName: new_column
+            newColumnName: old_column
+            columnDataType: VARCHAR(255)
+
+      rollback:
+        - renameColumn:
+            tableName: person
+            oldColumnName: old_column
+            newColumnName: new_column
+            columnDataType: VARCHAR(255)

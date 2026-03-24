@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Управление уроками</title>
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #ebe8e1;
+            background-image: url(/images/templatemo_body.jpg);
+            background-repeat: no-repeat;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        h1 {
+            background: linear-gradient(135deg, #e1dc5e 0%, #c9c447 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-size: 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.5);
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.05);
+        }
+
+        .back-button {
+            background: #6c757d;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 14px;
+            margin-right: 10px;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .back-button:hover {
+            background: #5a6268;
+            transform: scale(1.05);
+        }
+
+        .title-container {
+            display: flex;
+            align-items: center;
+            gap: 0px;
+        }
+
+        .form-container {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .form-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .lesson-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            align-items: end;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .form-group label .required {
+            color: #dc3545;
+        }
+
+        .form-group input, .form-group select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #e1dc5e;
+        }
+
+        .form-group input.error, .form-group select.error {
+            border-color: #dc3545;
+        }
+
+        .error-message-field {
+            color: #dc3545;
+            font-size: 11px;
+            margin-top: 4px;
+            display: none;
+        }
+
+        .submit-btn {
+            background: #e1dc5e;
+            color: #333;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .submit-btn:hover {
+            background: #c9c447;
+            transform: scale(1.02);
+        }
+
+        .lessons-table-container {
+            padding: 20px;
+            overflow-x: auto;
+        }
+
+        .lessons-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .lessons-table th {
+            background: #e1dc5e;
+            padding: 12px;
+            text-align: left;
+            color: #333;
+            font-weight: bold;
+        }
+
+        .lessons-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .lessons-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .edit-btn {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .edit-btn:hover {
+            background: #e0a800;
+        }
+
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+        }
+
+        .delete-btn:hover {
+            background: #c82333;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: #fff;
+            margin: 10% auto;
+            padding: 25px;
+            border-radius: 10px;
+            max-width: 500px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #333;
+        }
+
+        .close-modal {
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close-modal:hover {
+            color: #333;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+
+        }
+
+        .modal-buttons button {
+    padding: 8px 20px !important;
+}
+
+        .day-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 15px;
+            font-size: 12px;
+            background: #e1dc5e;
+            color: #333;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .lesson-form {
+                grid-template-columns: 1fr;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .modal-content {
+                margin: 20% 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>
+        <div class="title-container">
+            <a href="/myPage" class="back-button">Кабинетик</a>
+            📚 Управление уроками
+        </div>
+        <div class="header-buttons">
+            <button class="btn" onclick="loadLessons()">🔄 Обновить</button>
+        </div>
+    </h1>
+
+    <!-- Форма добавления урока -->
+    <div class="form-container">
+        <div class="form-title">➕ Добавить новый урок</div>
+        <div class="lesson-form">
+            <div class="form-group">
+                <label>Название урока <span class="required">*</span></label>
+                <input type="text" id="lessonName" placeholder="Например: Йога">
+                <div id="lessonNameError" class="error-message-field"></div>
+            </div>
+            <div class="form-group">
+                <label>Преподаватель <span class="required">*</span></label>
+                <input type="text" id="teacherName" placeholder="ФИО преподавателя">
+                <div id="teacherNameError" class="error-message-field"></div>
+            </div>
+            <div class="form-group">
+                <label>Аудитория <span class="required">*</span></label>
+                <input type="text" id="roomName" placeholder="Например: Малый зал">
+                <div id="roomNameError" class="error-message-field"></div>
+            </div>
+            <div class="form-group">
+                <label>День недели <span class="required">*</span></label>
+                <select id="dayOfWeek">
+                    <option value="1">Понедельник</option>
+                    <option value="2">Вторник</option>
+                    <option value="3">Среда</option>
+                    <option value="4">Четверг</option>
+                    <option value="5">Пятница</option>
+                    <option value="6">Суббота</option>
+                    <option value="7">Воскресенье</option>
+                </select>
+                <div id="dayOfWeekError" class="error-message-field"></div>
+            </div>
+            <div class="form-group">
+                <label>Время начала <span class="required">*</span></label>
+                <input type="time" id="startTime" value="09:00">
+                <div id="startTimeError" class="error-message-field"></div>
+            </div>
+            <div class="form-group">
+                <label>Время окончания <span class="required">*</span></label>
+                <input type="time" id="endTime" value="10:00">
+                <div id="endTimeError" class="error-message-field"></div>
+            </div>
+            <div class="form-group">
+                <button class="submit-btn" onclick="createLesson()">➕ Создать урок</button>
+            </div>
+        </div>
+        <div id="generalError" class="error-message"></div>
+        <div id="successMessage" class="success-message"></div>
+    </div>
+
+    <!-- Таблица уроков -->
+    <div class="lessons-table-container">
+        <div class="form-title">📋 Список всех уроков</div>
+        <div id="loading" class="loading" style="display: none;">⏳ Загрузка...</div>
+        <div id="tableError" class="error-message" style="display: none;"></div>
+        <table class="lessons-table" id="lessonsTable">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Название</th>
+                <th>Преподаватель</th>
+                <th>Аудитория</th>
+                <th>День</th>
+                <th>Время</th>
+                <th>Действия</th>
+            </tr>
+            </thead>
+            <tbody id="lessonsTableBody">
+            <tr><td colspan="7" style="text-align: center;">Загрузка...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Модальное окно для редактирования -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>✏️ Редактировать урок</h3>
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+        </div>
+        <div class="lesson-form" style="grid-template-columns: 1fr;">
+            <div class="form-group">
+                <label>Название урока <span class="required">*</span></label>
+                <input type="text" id="editLessonName">
+                <div id="editLessonNameError" class="error-message-field"></div>
+            </div>
+            <div class="form-group">
+                <label>Преподаватель <span class="required">*</span></label>
+                <input type="text" id="editTeacherName">
+                <div id="editTeacherNameError" class="error-message-field"></div>
+            </div>
+            <div class="form-group">
+                <label>Аудитория <span class="required">*</span></label>
+                <input type="text" id="editRoomName">
+                <div id="editRoomNameError" class="error-message-field"></div>
+            </div>
+            <div class="form-group">
+                <label>День недели <span class="required">*</span></label>
+                <select id="editDayOfWeek">
+                    <option value="1">Понедельник</option>
+                    <option value="2">Вторник</option>
+                    <option value="3">Среда</option>
+                    <option value="4">Четверг</option>
+                    <option value="5">Пятница</option>
+                    <option value="6">Суббота</option>
+                    <option value="7">Воскресенье</option>
+                </select>
+                <div id="editDayOfWeekError" class="error-message-field"></div>
+            </div>
+            <div class="form-group">
+                <label>Время начала <span class="required">*</span></label>
+                <input type="time" id="editStartTime">
+                <div id="editStartTimeError" class="error-message-field"></div>
+            </div>
+            <div class="form-group">
+                <label>Время окончания <span class="required">*</span></label>
+                <input type="time" id="editEndTime">
+                <div id="editEndTimeError" class="error-message-field"></div>
+            </div>
+        </div>
+        <div class="modal-buttons">
+            <button class="submit-btn" onclick="updateLesson()">💾 Сохранить</button>
+            <button class="delete-btn" onclick="closeModal()">❌ Отмена</button>
+        </div>
+        <div id="editGeneralError" class="error-message" style="margin-top: 10px;"></div>
+    </div>
+</div>
+
+<script>
+    const API_URL = 'https://192.168.0.60:8443/REST/schedule';
+    const DAYS_OF_WEEK = [
+        "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"
+    ];
+
+    let currentEditId = null;
+    let lessonsData = [];
+
+    // Получение CSRF токена
+    function getCsrfHeaders() {
+        const csrfToken = document.querySelector('meta[name="_csrf"]')?.content;
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
+        const headers = { 'Content-Type': 'application/json' };
+        if (csrfToken && csrfHeader) {
+            headers[csrfHeader] = csrfToken;
+        }
+        return headers;
+    }
+
+    // Очистка ошибок
+    function clearErrors(prefix = '') {
+        const fields = ['lessonName', 'teacherName', 'roomName', 'dayOfWeek', 'startTime', 'endTime'];
+        fields.forEach(field => {
+            const errorDiv = document.getElementById(`${prefix}${field}Error`);
+            if (errorDiv) {
+                errorDiv.style.display = 'none';
+                errorDiv.textContent = '';
+            }
+            const input = document.getElementById(`${prefix}${field}`);
+            if (input) {
+                input.classList.remove('error');
+            }
+        });
+        const generalError = document.getElementById(`${prefix}generalError`);
+        if (generalError) generalError.style.display = 'none';
+    }
+
+    // Показ ошибок
+    function showErrors(errors, prefix = '') {
+        for (const [field, message] of Object.entries(errors)) {
+            const errorDiv = document.getElementById(`${prefix}${field}Error`);
+            if (errorDiv) {
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+            }
+            const input = document.getElementById(`${prefix}${field}`);
+            if (input) {
+                input.classList.add('error');
+            }
+        }
+    }
+
+    // Показ сообщения
+    function showMessage(elementId, message, isSuccess = true) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.textContent = message;
+            element.style.display = 'block';
+            setTimeout(() => {
+                element.style.display = 'none';
+            }, 3000);
+        }
+    }
+
+    // Клиентская валидация
+    function validateLesson(data) {
+        const errors = {};
+
+        if (!data.lessonName || data.lessonName.trim() === '') {
+            errors.lessonName = 'Название урока обязательно';
+        } else if (data.lessonName.length < 2) {
+            errors.lessonName = 'Название урока должно быть не менее 2 символов';
+        } else if (data.lessonName.length > 70) {
+            errors.lessonName = 'Название урока должно быть не более 70 символов';
+        }
+
+        if (!data.teacherName || data.teacherName.trim() === '') {
+            errors.teacherName = 'Имя преподавателя обязательно';
+        } else if (data.teacherName.length < 2) {
+            errors.teacherName = 'Имя преподавателя должно быть не менее 2 символов';
+        } else if (data.teacherName.length > 70) {
+            errors.teacherName = 'Имя преподавателя должно быть не более 70 символов';
+        }
+
+        if (!data.roomName || data.roomName.trim() === '') {
+            errors.roomName = 'Название аудитории обязательно';
+        } else if (data.roomName.length < 2) {
+            errors.roomName = 'Название аудитории должно быть не менее 2 символов';
+        } else if (data.roomName.length > 70) {
+            errors.roomName = 'Название аудитории должно быть не более 70 символов';
+        }
+
+        if (!data.dayOfWeek || data.dayOfWeek < 1 || data.dayOfWeek > 7) {
+            errors.dayOfWeek = 'День недели должен быть от 1 до 7';
+        }
+
+        if (!data.startTime) {
+            errors.startTime = 'Время начала обязательно';
+        }
+        if (!data.endTime) {
+            errors.endTime = 'Время окончания обязательно';
+        }
+        if (data.startTime && data.endTime && data.startTime >= data.endTime) {
+            errors.endTime = 'Время окончания должно быть позже времени начала';
+        }
+
+        return errors;
+    }
+
+    // Загрузка всех уроков
+    async function loadLessons() {
+        const loading = document.getElementById('loading');
+        const tableError = document.getElementById('tableError');
+        const tbody = document.getElementById('lessonsTableBody');
+
+        try {
+            loading.style.display = 'block';
+            tableError.style.display = 'none';
+
+            const response = await fetch(`${API_URL}/all`);
+
+            if (!response.ok) {
+                throw new Error(`Ошибка HTTP: ${response.status}`);
+            }
+
+            lessonsData = await response.json();
+            console.log('Загружены уроки:', lessonsData);
+
+            loading.style.display = 'none';
+            renderTable();
+
+        } catch (err) {
+            console.error('Ошибка загрузки:', err);
+            loading.style.display = 'none';
+            tableError.style.display = 'block';
+            tableError.textContent = 'Не удалось загрузить уроки. ' + err.message;
+            tbody.innerHTML = '骨头<td colspan="7" style="text-align: center;">Ошибка загрузки</td> </tr>';
+        }
+    }
+
+    // Отображение таблицы
+    function renderTable() {
+        const tbody = document.getElementById('lessonsTableBody');
+
+        if (!lessonsData || lessonsData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">📭 Нет уроков</td></tr>';
+            return;
+        }
+
+        let html = '';
+        lessonsData.forEach(lesson => {
+            const dayName = DAYS_OF_WEEK[lesson.dayOfWeek - 1];
+            const startTime = lesson.startTime ? lesson.startTime.substring(0,5) : '';
+            const endTime = lesson.endTime ? lesson.endTime.substring(0,5) : '';
+
+            html += `
+                <tr>
+                    <td>${lesson.id}</td>
+                    <td><strong>${escapeHtml(lesson.lessonName)}</strong></td>
+                    <td>${escapeHtml(lesson.teacherName)}</td>
+                    <td>${escapeHtml(lesson.roomName)}</td>
+                    <td><span class="day-badge">${dayName}</span></td>
+                    <td>${startTime} - ${endTime}</td>
+                    <td class="action-buttons">
+                        <button class="action-btn edit-btn" onclick="openEditModal(${lesson.id})">✏️ Редактировать</button>
+                        <button class="action-btn delete-btn" onclick="deleteLesson(${lesson.id})">🗑️ Удалить</button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        tbody.innerHTML = html;
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        return text.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    // Создание урока
+    async function createLesson() {
+        const lessonData = {
+            lessonName: document.getElementById('lessonName').value.trim(),
+            teacherName: document.getElementById('teacherName').value.trim(),
+            roomName: document.getElementById('roomName').value.trim(),
+            dayOfWeek: parseInt(document.getElementById('dayOfWeek').value),
+            startTime: document.getElementById('startTime').value,
+            endTime: document.getElementById('endTime').value
+        };
+
+        // Клиентская валидация
+        const clientErrors = validateLesson(lessonData);
+        if (Object.keys(clientErrors).length > 0) {
+            clearErrors('');
+            showErrors(clientErrors, '');
+            return;
+        }
+
+        try {
+            const url = `${API_URL}/lessons`;
+            console.log('📤 Отправка запроса на:', url);
+            console.log('📦 Данные:', lessonData);
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: getCsrfHeaders(),
+                body: JSON.stringify({
+                    lessonName: lessonData.lessonName,
+                    teacherName: lessonData.teacherName,
+                    roomName: lessonData.roomName,
+                    dayOfWeek: lessonData.dayOfWeek,
+                    startTime: lessonData.startTime + ':00',
+                    endTime: lessonData.endTime + ':00'
+                })
+            });
+
+            console.log('📥 Статус ответа:', response.status);
+
+            // Проверяем Content-Type ответа
+            const contentType = response.headers.get('content-type');
+            console.log('Content-Type:', contentType);
+
+            // Получаем текст ответа
+            const responseText = await response.text();
+            console.log('📄 Текст ответа:', responseText);
+
+            // Пробуем распарсить JSON
+            let responseData;
+            try {
+                responseData = JSON.parse(responseText);
+            } catch (e) {
+                console.error('❌ Ответ не JSON:', responseText.substring(0, 200));
+                showMessage('generalError', 'Ошибка сервера: ' + responseText.substring(0, 200), false);
+                return;
+            }
+
+            if (response.ok) {
+                // Очищаем форму
+                document.getElementById('lessonName').value = '';
+                document.getElementById('teacherName').value = '';
+                document.getElementById('roomName').value = '';
+                document.getElementById('startTime').value = '09:00';
+                document.getElementById('endTime').value = '10:00';
+                clearErrors('');
+
+                await loadLessons();
+                showMessage('successMessage', responseData.message || '✅ Урок успешно добавлен', true);
+            } else {
+                // Серверная валидация
+                if (responseData.errors) {
+                    clearErrors('');
+                    showErrors(responseData.errors, '');
+                } else {
+                    showMessage('generalError', responseData.message || 'Ошибка при создании урока', false);
+                }
+            }
+        } catch (err) {
+            console.error('❌ Ошибка создания:', err);
+            showMessage('generalError', 'Ошибка: ' + err.message, false);
+        }
+    }
+
+    // Открытие модального окна для редактирования
+    function openEditModal(id) {
+        const lesson = lessonsData.find(l => l.id === id);
+        if (!lesson) return;
+
+        currentEditId = id;
+        document.getElementById('editLessonName').value = lesson.lessonName || '';
+        document.getElementById('editTeacherName').value = lesson.teacherName || '';
+        document.getElementById('editRoomName').value = lesson.roomName || '';
+        document.getElementById('editDayOfWeek').value = lesson.dayOfWeek || 1;
+        document.getElementById('editStartTime').value = lesson.startTime ? lesson.startTime.substring(0,5) : '09:00';
+        document.getElementById('editEndTime').value = lesson.endTime ? lesson.endTime.substring(0,5) : '10:00';
+
+        clearErrors('edit');
+        document.getElementById('editModal').style.display = 'block';
+    }
+
+    // Закрытие модального окна
+    function closeModal() {
+        document.getElementById('editModal').style.display = 'none';
+        currentEditId = null;
+        clearErrors('edit');
+    }
+
+    // Обновление урока
+    async function updateLesson() {
+        const lessonData = {
+            lessonName: document.getElementById('editLessonName').value.trim(),
+            teacherName: document.getElementById('editTeacherName').value.trim(),
+            roomName: document.getElementById('editRoomName').value.trim(),
+            dayOfWeek: parseInt(document.getElementById('editDayOfWeek').value),
+            startTime: document.getElementById('editStartTime').value,
+            endTime: document.getElementById('editEndTime').value
+        };
+
+        const clientErrors = validateLesson(lessonData);
+        if (Object.keys(clientErrors).length > 0) {
+            clearErrors('edit');
+            showErrors(clientErrors, 'edit');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/lessons/${currentEditId}`, {
+                method: 'PUT',
+                headers: getCsrfHeaders(),
+                body: JSON.stringify({
+                    lessonName: lessonData.lessonName,
+                    teacherName: lessonData.teacherName,
+                    roomName: lessonData.roomName,
+                    dayOfWeek: lessonData.dayOfWeek,
+                    startTime: lessonData.startTime + ':00',
+                    endTime: lessonData.endTime + ':00'
+                })
+            });
+
+            const responseData = await response.json();
+
+            if (response.ok) {
+                closeModal();
+                await loadLessons();
+                showMessage('successMessage', responseData.message || '✅ Урок успешно обновлен', true);
+            } else {
+                if (responseData.errors) {
+                    clearErrors('edit');
+                    showErrors(responseData.errors, 'edit');
+                } else {
+                    showMessage('editGeneralError', responseData.message || 'Ошибка при обновлении урока', false);
+                }
+            }
+        } catch (err) {
+            console.error('Ошибка обновления:', err);
+            showMessage('editGeneralError', 'Ошибка: ' + err.message, false);
+        }
+    }
+
+    // Удаление урока
+    async function deleteLesson(id) {
+        if (!confirm('Вы уверены, что хотите удалить этот урок?\nЭто также удалит урок из расписания всех пользователей!')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/lessons/${id}`, {
+                method: 'DELETE',
+                headers: getCsrfHeaders()
+            });
+
+            const responseData = await response.json();
+
+            if (response.ok) {
+                await loadLessons();
+                showMessage('successMessage', responseData.message || '✅ Урок успешно удален', true);
+            } else {
+                showMessage('generalError', responseData.message || 'Ошибка при удалении урока', false);
+            }
+        } catch (err) {
+            console.error('Ошибка удаления:', err);
+            showMessage('generalError', 'Ошибка: ' + err.message, false);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadLessons();
+    });
+
+    window.onclick = function(event) {
+        const modal = document.getElementById('editModal');
+        if (event.target === modal) {
+            closeModal();
+        }
+    }
+</script>
+
+</body>
+</html>

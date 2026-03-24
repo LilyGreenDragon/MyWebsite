@@ -185,6 +185,10 @@ public class RestPeopleController {
             helper.setFrom("egorchik_mail@mail.ru");
         } catch (MessagingException e) {
             e.printStackTrace();
+
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Ошибка при отправке письма: " + e.getMessage());
         }
         mailSender.send(mimeMessage);
 
@@ -228,7 +232,7 @@ public class RestPeopleController {
         }
     }
 
-
+// Для обработки PersonNotCreatedException во всех методах контроллера ( throw new PersonNotCreatedException(errorMessage.toString());})
     @ExceptionHandler
     private ResponseEntity<PersonErrorResponse> handleException(PersonNotCreatedException e) {
         PersonErrorResponse response = new PersonErrorResponse(e.getMessage(), System.currentTimeMillis()

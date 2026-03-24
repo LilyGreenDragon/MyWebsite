@@ -1,54 +1,98 @@
 <!DOCTYPE html>
 <html xmlns:th="http://thymeleaf.org">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-<title>Регистрация</title>
-<link th:href="@{/css/go.css}" type="text/css" rel="stylesheet" />
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <title>Регистрация</title>
+  <link th:href="@{/css/go.css}" type="text/css" rel="stylesheet" />
+  <style>
+    /* Дополнительные стили для позиционирования */
+    .login-container {
+      position: relative;
+      min-height: 100vh;
+      padding-top: 100px;
+    }
+
+    .bee-left {
+      position: absolute;
+      left: calc(50% - 200px); /* Смещаем влево от центра */
+      transform: translateX(-50%);
+      margin-left: -220px; /* Дополнительный отступ влево */
+      top: 100px;
+    }
+
+    .form-center {
+      display: flex;
+      justify-content: center;
+    }
+
+    /* Адаптивность для мобильных устройств */
+    @media (max-width: 900px) {
+      .bee-left {
+        position: relative;
+        left: auto;
+        transform: none;
+        margin-left: 0;
+        top: auto;
+        display: flex;
+        justify-content: center;
+        margin-bottom: 20px;
+      }
+
+      .login-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding-top: 40px;
+      }
+    }
+  </style>
 </head>
 
 <body>
 
-<div class="bee">
-  <form th:action="@{/}" target="_self">
-  <button type="submit" class="bee_button">
-  <img src="/images/bee_white.png" alt="" width="145px">
-  </button>
-  </form>
-  <div class="bee_caption">I go home!</div>
-</div>
+<div class="login-container">
 
-
-<table width="400px" border="0" align="center" cellpadding="0" cellspacing="0" class="wr_login" >
-<tr>
-<td width="100%" align="center">
-<div class="login-page">
-  <div class="form">
-
-    <form class="login-form" id="formGo"  th:method="POST" th:action="@{/login}" th:object="${loginDTO}" >
-      <input type="text" placeholder="username" th:field="*{username}" id="nameGo" maxlength="50"/>
-      <div style="color:orange; font-size:12px" th:if="${#fields.hasErrors('username')}" th:errors="*{username}">Name error</div>
-      <input type="password" placeholder="password" th:field="*{password}" id="passwordGo" maxlength="50"/>
-      <div style="color:orange; font-size:12px" th:if="${#fields.hasErrors('password')}" th:errors="*{password}">Name error</div>
-      <!--<div th:if="${param.error}" style="color:red"> Неправильное имя или пароль</div>-->
-      <div th:if="${error!= null}" style="color:red" class="alert alert-danger" th:utext="${session[SPRING_SECURITY_LAST_EXCEPTION]}">error</div>
-      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-      <button type="submit">login</button>
-
-      <p class="message">Log in with <a href="/oauth2/authorization/github">GitHub</a></p>
-      <div th:if="${param.error}">
-        <p style="color:orange;"><span th:text="${param.error}"></span></p>
-      </div>
-      <p class="message">Not registered? <a href="/registration">Create an account</a></p>
-
-    </form>
-
+  <!-- Пчелка слева от формы -->
+  <div class="bee-left">
+    <div class="bee">
+      <form th:action="@{/}" target="_self">
+        <button type="submit" class="bee_button">
+          <img src="/images/bee_white.png" alt="" width="145px">
+        </button>
+      </form>
+      <div class="bee_caption">I go home!</div>
+    </div>
   </div>
+
+  <!-- Форма логина (центрирована) -->
+  <div class="form-center">
+    <table width="400px" border="0" align="center" cellpadding="0" cellspacing="0" class="wr_login">
+      <tr>
+        <td width="100%" align="center">
+          <div class="login-page">
+            <div class="form">
+              <form class="login-form" id="formGo" th:method="POST" th:action="@{/login}" th:object="${loginDTO}">
+                <input type="text" placeholder="username" th:field="*{username}" id="nameGo" maxlength="50"/>
+                <div style="color:orange; font-size:12px" th:if="${#fields.hasErrors('username')}" th:errors="*{username}">Name error</div>
+                <input type="password" placeholder="password" th:field="*{password}" id="passwordGo" maxlength="50"/>
+                <div style="color:orange; font-size:12px" th:if="${#fields.hasErrors('password')}" th:errors="*{password}">Name error</div>
+                <div th:if="${error!= null}" style="color:red" class="alert alert-danger" th:utext="${session[SPRING_SECURITY_LAST_EXCEPTION]}">error</div>
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit">login</button>
+                <p class="message">Log in with <a href="/oauth2/authorization/github">GitHub</a></p>
+                <div th:if="${param.error}">
+                  <p style="color:orange;"><span th:text="${param.error}"></span></p>
+                </div>
+                <p class="message">Not registered? <a href="/registration">Create an account</a></p>
+              </form>
+            </div>
+          </div>
+        </td>
+      </tr>
+    </table>
+  </div>
+
 </div>
-</td>
-
-</tr>
-
-</table>
 
 </body>
 </html>

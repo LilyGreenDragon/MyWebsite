@@ -41,19 +41,19 @@ public class Person implements Serializable {
     @Column(name = "surname")
     private String surname;
 
-   // @NotEmpty(message = "Username should not be empty")
+   // @NotBlank(message = "Username should not be empty")
     @Size(min=2, max=30, message = "Username should be between 2 and 30 characters")
     @Column(name = "username")
     private String username;
 
-    //@NotEmpty(message = "Password should not be empty")
+    //@NotBlank(message = "Password should not be empty")
     @JsonIgnore
     //@Size(min=4, max=10, message = "Password should be between 4 and 10 characters")
     //@Length (min = 6, message = "Длина пароля не может быть менее 6 цифр")
     @Column(name = "password")
     private String password;
 
-   // @NotEmpty(message = "Email should not be empty")
+   // @NotBlank(message = "Email should not be empty")
     @Size(min=0, max=70, message = "Email should be less then 70 characters")
     @Email(message = "Email should be valid")
     @Column(name = "email")
@@ -81,6 +81,12 @@ public class Person implements Serializable {
             inverseJoinColumns = @JoinColumn(name= "role_id", referencedColumnName = "id"))
     @JsonIgnore
     private List<Role> roles = new ArrayList<>();
+
+    @ManyToMany(fetch= FetchType.EAGER, cascade = {CascadeType.MERGE,CascadeType.PERSIST,CascadeType.REFRESH})
+    @JoinTable(name= "person_lessons", joinColumns = @JoinColumn(name="person_id", referencedColumnName = "id"),
+            inverseJoinColumns = @JoinColumn(name= "lesson_id", referencedColumnName = "id"))
+    @JsonIgnore
+    private List<Lesson> lessons = new ArrayList<>();
 
     public Person(int id,String username, String password, String email) {
         this.id = id;

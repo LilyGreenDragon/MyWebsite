@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Schedule</title>
+  <meta name="_csrf" th:content="${_csrf.token}"/>
+  <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+
+  <style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+        background-color: #ebe8e1;
+        background-image: url(/images/templatemo_body.jpg);
+        background-repeat: no-repeat;
+        min-height: 100vh;
+        padding: 20px;
+    }
+
+    .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        overflow: hidden;
+    }
+
+    h1 {
+        background: linear-gradient(135deg, #e1dc5e 0%, #c9c447 100%);
+        color: white;
+        padding: 20px;
+        text-align: center;
+        font-size: 28px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .header-buttons {
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn {
+        background: rgba(255,255,255,0.2);
+        color: white;
+        border: 1px solid rgba(255,255,255,0.5);
+        padding: 8px 10px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.3s;
+    }
+
+    .btn:hover {
+        background: rgba(255,255,255,0.3);
+        transform: scale(1.05);
+    }
+
+    .btn.active {
+        background: rgba(255,255,255,0.4);
+        border: 2px solid white;
+        font-weight: bold;
+    }
+
+    /* Стили для кнопки возврата */
+    .back-button {
+        background: #6c757d;
+        color: white;
+        padding: 8px 15px;
+        border-radius: 5px;
+        text-decoration: none;
+        font-size: 14px;
+        margin-right: 10px;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .back-button:hover {
+        background: #5a6268;
+        transform: scale(1.05);
+    }
+
+    .title-container {
+        display: flex;
+        align-items: center;
+        gap: 0px;
+    }
+
+    .view-toggle {
+        display: flex;
+        gap: 10px;
+        padding: 15px 20px;
+        background: #f0f0f0;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .view-btn {
+        flex: 1;
+        padding: 10px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+        transition: all 0.3s;
+    }
+
+    .view-btn.my-schedule {
+        background: #e1dc5e;
+        color: #333;
+    }
+
+    .view-btn.all-schedule {
+        background: #c9c447;
+        color: #333;
+    }
+
+    .view-btn:hover {
+        transform: scale(1.02);
+        opacity: 0.9;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 40px;
+    }
+
+    .loading-spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #e1dc5e;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 20px auto;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+        color: #666;
+        font-size: 16px;
+        margin-top: 10px;
+    }
+
+    .error-message {
+        background: #f8d7da;
+        color: #721c24;
+        padding: 15px;
+        margin: 20px;
+        border-radius: 8px;
+        text-align: center;
+        border: 1px solid #f5c6cb;
+    }
+
+    .schedule {
+        padding: 20px;
+    }
+
+    .day-item {
+        margin-bottom: 10px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .day-header {
+        background: #e1dc5e;
+        padding: 15px 20px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 18px;
+        color: #333;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.3s;
+        user-select: none;
+    }
+
+    .day-header:hover {
+        background: #e1dc5e;
+        padding-left: 25px;
+    }
+
+    .day-header.active {
+        background: #e1dc5e;
+        color: white;
+    }
+
+    .day-header .arrow {
+        font-size: 20px;
+        transition: transform 0.3s;
+    }
+
+    .day-header.active .arrow {
+        transform: rotate(180deg);
+    }
+
+    .day-content {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease-out;
+        background: white;
+    }
+
+    .day-content.show {
+        max-height: 500px;
+        transition: max-height 0.5s ease-in;
+    }
+
+    .lesson-list {
+        padding: 15px 20px;
+        border-top: 1px solid #e0e0e0;
+    }
+
+    .lesson-item {
+        padding: 12px;
+        margin-bottom: 8px;
+        background: #f8f9fa;
+        border-radius: 6px;
+        border-left: 4px solid #e1dc5e;
+        display: grid;
+        grid-template-columns: auto 1fr auto auto;
+        gap: 15px;
+        align-items: center;
+        transition: transform 0.2s;
+    }
+
+    .lesson-item:hover {
+        transform: translateX(5px);
+        background: #e9ecef;
+    }
+
+    .lesson-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .lesson-time {
+        font-weight: bold;
+        color: #c9c447;
+        min-width: 100px;
+        font-size: 1.1em;
+    }
+
+    .lesson-info {
+        color: #333;
+    }
+
+    .lesson-teacher {
+        color: #666;
+        font-size: 0.9em;
+        margin-top: 4px;
+        font-style: italic;
+    }
+
+    .lesson-room {
+        background: #e9ecef;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.9em;
+        color: #495057;
+        white-space: nowrap;
+        font-weight: 500;
+    }
+
+    .lesson-action-btn {
+        background: #e1dc5e;
+        border: none;
+        color: #333;
+        padding: 5px 10px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: bold;
+        transition: all 0.3s;
+        white-space: nowrap;
+    }
+
+    .lesson-action-btn:hover {
+        background: #c9c447;
+        transform: scale(1.05);
+    }
+
+    .lesson-action-btn.remove {
+        background: #dc3545;
+        color: white;
+    }
+
+    .lesson-action-btn.remove:hover {
+        background: #c82333;
+    }
+
+    .no-lessons {
+        padding: 20px;
+        text-align: center;
+        color: #999;
+        font-style: italic;
+        background: #f8f9fa;
+        border-radius: 6px;
+        font-size: 16px;
+    }
+
+    @media (max-width: 600px) {
+        h1 {
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .lesson-item {
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+
+        .lesson-time {
+            min-width: auto;
+        }
+
+        .lesson-room {
+            display: inline-block;
+            width: fit-content;
+        }
+
+        .lesson-action-btn {
+            width: 100%;
+        }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>
+    <div class="title-container">
+      <a href="/myPage" class="back-button">Кабинетик</a>
+      🗓️  Расписание занятий
+    </div>
+    <div class="header-buttons">
+      <button class="btn" onclick="loadAllDays()">🔄 Обновить</button>
+      <button class="btn" onclick="expandAllDays()">🔽 Все дни</button>
+      <button class="btn" onclick="collapseAllDays()">🔼 Свернуть всё</button>
+    </div>
+  </h1>
+
+  <!-- Кнопки переключения режимов -->
+  <div class="view-toggle">
+    <button class="view-btn my-schedule" onclick="showMySchedule()">📋 Мое расписание</button>
+    <button class="view-btn all-schedule" onclick="showAllSchedule()">📚 Общее расписание</button>
+  </div>
+
+  <!-- Индикатор загрузки -->
+  <div id="loading" class="loading" style="display: none;">
+    <div class="loading-spinner"></div>
+    <div class="loading-text" id="loadingText">Загрузка расписания...</div>
+  </div>
+
+  <!-- Сообщение об ошибке -->
+  <div id="error" class="error-message" style="display: none;"></div>
+
+  <!-- Расписание -->
+  <div class="schedule" id="scheduleContainer"></div>
+</div>
+
+<script>
+
+  const API_URL = 'https://192.168.0.60:8443/REST/schedule';
+  const DAYS_OF_WEEK = [
+      "Понедельник",
+      "Вторник",
+      "Среда",
+      "Четверг",
+      "Пятница",
+      "Суббота",
+      "Воскресенье"
+  ];
+
+  // Хранилище данных
+  let scheduleData = [];
+  // Хранилище выбранных занятий (ID занятий)
+  let myScheduleIds = new Set();
+  // Проверка, добавлено ли занятие в личное расписание
+  function isInMySchedule(lessonId) {
+  return myScheduleIds.has(lessonId);
+  }
+  // Текущий режим отображения: 'all' или 'my'
+  let currentView = 'all';
+
+
+  // Загрузка выбранных занятий из БД
+  async function loadMyLessonsFromDB() {
+  try {
+      const response = await fetch(`${API_URL}/allmylessons`, {
+          headers: {
+              'Accept': 'application/json'
+          }
+      });
+
+      if (response.ok) {
+          const lessons = await response.json();
+          myScheduleIds = new Set(lessons.map(lesson => lesson.id));
+          console.log('Загружены выбранные занятия:', myScheduleIds);
+      } else {
+          console.error('Ошибка загрузки занятий пользователя:', response.status);
+      }
+  } catch (err) {
+      console.error('Ошибка загрузки выбранных занятий:', err);
+  }
+}
+
+  // Добавление/удаление занятия из личного расписания
+async function toggleLesson(lessonId) {
+  try {
+      let response;
+      const url = `${API_URL}/mylessons/${lessonId}`;
+
+      // Получаем CSRF-токен и заголовок (как в вашем AJAX)
+      const csrfToken = document.querySelector('meta[name="_csrf"]')?.content;
+      const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
+
+      console.log('CSRF Token:', csrfToken);
+      console.log('CSRF Header:', csrfHeader);
+
+      // Собираем заголовки
+      const headers = {
+          'Content-Type': 'application/json'
+      };
+
+      // Добавляем CSRF-токен, если он есть
+      if (csrfToken && csrfHeader) {
+          headers[csrfHeader] = csrfToken;
+      }
+
+      if (myScheduleIds.has(lessonId)) {
+          // Удаляем занятие
+          response = await fetch(url, {
+              method: 'DELETE',
+              headers: headers
+          });
+      } else {
+          // Добавляем занятие
+          response = await fetch(url, {
+              method: 'POST',
+              headers: headers
+          });
+      }
+
+      if (response.ok) {
+          // Обновляем локальное состояние
+          if (myScheduleIds.has(lessonId)) {
+              myScheduleIds.delete(lessonId);
+          } else {
+              myScheduleIds.add(lessonId);
+          }
+
+          // Обновляем отображение в зависимости от текущего режима
+          if (currentView === 'all') {
+              renderAllSchedule();
+          } else {
+              renderMySchedule();
+          }
+      } else {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Ошибка при обновлении расписания');
+      }
+  } catch (err) {
+      console.error('Ошибка toggleLesson:', err);
+      alert('Не удалось обновить расписание: ' + err.message);
+  }
+}
+
+
+  // Главная функция загрузки ВСЕХ дней ОДНИМ запросом
+  async function loadAllDays() {
+      const loading = document.getElementById('loading');
+      const error = document.getElementById('error');
+      const loadingText = document.getElementById('loadingText');
+
+      try {
+          // Показываем загрузку
+          loading.style.display = 'block';
+          error.style.display = 'none';
+
+          loadingText.textContent = 'Загрузка расписания...';
+
+          // Загружаем все занятия
+          const response = await fetch(`${API_URL}/all`);
+
+          if (!response.ok) {
+              throw new Error(`Ошибка HTTP: ${response.status}`);
+          }
+
+          // Получаем ВСЕ данные сразу
+          scheduleData = await response.json();
+
+          // Загружаем выбранные занятия пользователя
+          await loadMyLessonsFromDB();
+
+          console.log('🎉 Все данные загружены:', scheduleData);
+          console.log(`Всего занятий: ${scheduleData.length}`);
+
+          // Скрываем загрузку
+          loading.style.display = 'none';
+
+          // Рендерим расписание
+          renderAllSchedule();
+
+      } catch (err) {
+          console.error('Критическая ошибка:', err);
+          loading.style.display = 'none';
+          error.style.display = 'block';
+          error.textContent = 'Не удалось загрузить расписание. Проверьте подключение к серверу.';
+      }
+  }
+
+  // Рендеринг общего расписания
+  function renderAllSchedule() {
+      currentView = 'all';
+      const container = document.getElementById('scheduleContainer');
+      let html = '';
+
+      DAYS_OF_WEEK.forEach((day, index) => {
+          const dayNumber = index + 1;
+          const dayLessons = scheduleData.filter(lesson => lesson.dayOfWeek === dayNumber);
+
+          html += `
+              <div class="day-item">
+                  <div class="day-header" id="header-${dayNumber}" onclick="toggleDay(${dayNumber})">
+                      <span>
+                          ${day}
+                          ${dayLessons.length > 0 ?
+                              `<span style="font-size: 14px; color: #495057; margin-left: 10px;">
+                                  (${dayLessons.length})
+                              </span>` :
+                              ''
+                          }
+                      </span>
+                      <span class="arrow">▼</span>
+                  </div>
+                  <div class="day-content" id="day-${dayNumber}">
+                      <div class="lesson-list">
+          `;
+
+          if (dayLessons.length > 0) {
+              // Сортируем по времени
+              dayLessons.sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+              dayLessons.forEach(lesson => {
+
+                  const isSelected = isInMySchedule(lesson.id);
+                  //const isSelected = false;
+                  html += `
+                      <div class="lesson-item">
+                          <div class="lesson-time">${lesson.startTime.substring(0,5)} - ${lesson.endTime.substring(0,5)}</div>
+                          <div class="lesson-info">
+                              <strong>${lesson.lessonName}</strong>
+                              <div class="lesson-teacher">${lesson.teacherName}</div>
+                          </div>
+                          <div class="lesson-room">${lesson.roomName}</div>
+                          <button class="lesson-action-btn ${isSelected ? 'remove' : ''}"
+                                  onclick="toggleLesson(${lesson.id})">
+                              ${isSelected ? '❌ Удалить' : '➕ Добавить'}
+                          </button>
+                      </div>
+                  `;
+              });
+          } else {
+              html += `<div class="no-lessons">📭 Нет занятий</div>`;
+          }
+
+          html += `
+                      </div>
+                  </div>
+              </div>
+          `;
+      });
+
+      container.innerHTML = html;
+  }
+
+  // Рендеринг личного расписания
+  function renderMySchedule() {
+      currentView = 'my';
+      const container = document.getElementById('scheduleContainer');
+
+      // Фильтруем только выбранные занятия
+      const myLessons = scheduleData.filter(lesson => myScheduleIds.has(lesson.id));
+
+      let html = '';
+
+      DAYS_OF_WEEK.forEach((day, index) => {
+          const dayNumber = index + 1;
+          const dayLessons = myLessons.filter(lesson => lesson.dayOfWeek === dayNumber);
+
+          html += `
+              <div class="day-item">
+                  <div class="day-header" id="header-${dayNumber}" onclick="toggleDay(${dayNumber})">
+                      <span>
+                          ${day}
+                          ${dayLessons.length > 0 ?
+                              `<span style="font-size: 14px; color: #495057; margin-left: 10px;">
+                                  (${dayLessons.length})
+                              </span>` :
+                              ''
+                          }
+                      </span>
+                      <span class="arrow">▼</span>
+                  </div>
+                  <div class="day-content" id="day-${dayNumber}">
+                      <div class="lesson-list">
+          `;
+
+          if (dayLessons.length > 0) {
+              // Сортируем по времени
+              dayLessons.sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+              dayLessons.forEach(lesson => {
+                  html += `
+                      <div class="lesson-item">
+                          <div class="lesson-time">${lesson.startTime.substring(0,5)} - ${lesson.endTime.substring(0,5)}</div>
+                          <div class="lesson-info">
+                              <strong>${lesson.lessonName}</strong>
+                              <div class="lesson-teacher">${lesson.teacherName}</div>
+                          </div>
+                          <div class="lesson-room">${lesson.roomName}</div>
+                          <button class="lesson-action-btn remove"
+                                  onclick="toggleLesson(${lesson.id})">
+                              ❌ Удалить
+                          </button>
+                      </div>
+                  `;
+              });
+          } else {
+              html += `<div class="no-lessons">📭 Нет занятий в этот день</div>`;
+          }
+
+          html += `
+                      </div>
+                  </div>
+              </div>
+          `;
+      });
+
+      // Если вообще нет выбранных занятий
+      if (myLessons.length === 0) {
+          html = `
+              <div class="no-lessons" style="margin-top: 20px;">
+                  📭 У вас пока нет выбранных занятий<br>
+                  <small>Перейдите в "Общее расписание" и добавьте занятия</small>
+              </div>
+          `;
+      }
+
+      container.innerHTML = html;
+  }
+
+  // Переключение на личное расписание
+  function showMySchedule() {
+      currentView = 'my';
+      renderMySchedule();
+  }
+
+  // Переключение на общее расписание
+  function showAllSchedule() {
+      currentView = 'all';
+      renderAllSchedule();
+  }
+
+  // Открыть/закрыть день
+  //При клике на определенный день, если этот день закрыт, сначала закрывает все дни, потом открывает этот день
+  //если день открыт, то закрывает его
+  function toggleDay(dayNumber) {
+      const content = document.getElementById(`day-${dayNumber}`);
+      const header = document.getElementById(`header-${dayNumber}`);
+      //const header = content.previousElementSibling; //возвращает предыдущий элемент на том же уровне(как раз header)
+
+      if (!content.classList.contains('show')) {
+          document.querySelectorAll('.day-content').forEach(c => {
+              c.classList.remove('show');
+          });
+          document.querySelectorAll('.day-header').forEach(h => {
+              h.classList.remove('active');
+          });
+
+          content.classList.add('show');
+          header.classList.add('active');
+      } else {
+          content.classList.remove('show');
+          header.classList.remove('active');
+      }
+  }
+
+  function expandAllDays() {
+      document.querySelectorAll('.day-content').forEach((content, index) => {
+          content.classList.add('show');
+          content.previousElementSibling.classList.add('active');
+      });
+  }
+
+  function collapseAllDays() {
+      document.querySelectorAll('.day-content').forEach(content => {
+          content.classList.remove('show');
+          content.previousElementSibling.classList.remove('active');
+      });
+  }
+
+  // Загружаем данные при загрузке страницы
+  document.addEventListener('DOMContentLoaded', () => {
+      loadAllDays();
+  });
+
+// Быстрые клавиши (Esc, CTRL+Пробел, CTRL+F5)
+/*
+  document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+          collapseAllDays();
+      }
+      if (e.key === ' ' && e.ctrlKey) {
+          e.preventDefault();
+          expandAllDays();
+      }
+      if (e.key === 'F5') {
+          e.preventDefault();
+          loadAllDays();
+      }
+  });
+*/
+</script>
+
+</body>
+</html>

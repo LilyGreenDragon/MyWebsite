@@ -1,0 +1,30 @@
+databaseChangeLog:
+  - changeSet:
+      id: drop-old_column-from-person
+      author: Lily
+      description: Удаление колонки old_column из таблицы person
+
+      # Проверяем, что колонка old_column существует перед удалением
+      preConditions:
+        - onFail: HALT
+        - onError: HALT
+        - tableExists:
+            tableName: person
+        - columnExists:
+            tableName: person
+            columnName: old_column
+
+      changes:
+        - dropColumn:
+            tableName: person
+            columnName: old_column
+
+      rollback:
+        - addColumn:
+            tableName: person
+            columns:
+              - column:
+                  name: old_column
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: true

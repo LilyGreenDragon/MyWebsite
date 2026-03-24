@@ -1,0 +1,34 @@
+databaseChangeLog:
+  - changeSet:
+      id: add-new-column-to-person
+      author: Lily
+      description: Добавление колонки new_column в таблицу person
+
+      # Предусловие - проверяем, что таблица существует и колонки еще нет
+      preConditions:
+        - onFail: HALT  # Остановить если условие не выполнено
+        - onError: HALT  # Остановить если ошибка проверки
+        - tableExists:
+            tableName: person
+        - not:
+            columnExists:
+              tableName: person
+              columnName: new_column
+
+      # Само изменение
+      changes:
+        - addColumn:
+            tableName: person
+            columns:
+              - column:
+                  name: new_column
+                  type: VARCHAR(255)
+                  constraints:
+                   nullable: true   # Если нужно разрешить NULL
+
+
+      # Откат изменений
+      rollback:
+        - dropColumn:
+            tableName: person
+            columnName: new_column

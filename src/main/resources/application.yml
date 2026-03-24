@@ -1,11 +1,15 @@
 spring:
+
+  config:
+    import: optional:classpath:applicationsecrets.properties
+
   security:
     oauth2:
       client:
         registration:
           github:
-            clientId: Ov23liAVrpgakwpzRqQ4
-            clientSecret: e92ca3c865a3eff4951723adb0eb8da26329667a
+            clientId: ${GITHUB_CLIENT_ID}
+            clientSecret: ${GITHUB_CLIENT_SECRET}
             scope: read:user, user:email
             #redirect-uri: "{baseUrl}/login/oauth2/code/github"
         #provider:
@@ -14,25 +18,32 @@ spring:
             #token-uri: https://github.com/login/oauth/access_token
             #user-info-uri: https://api.github.com/user
 
-
   redis:
-    #host: redis
     host: localhost
     port: 6379
-    timeout: 2000ms  # 2 секунды
+    timeout: 2000ms #2 секунды
 
   session:
-   store-type: redis
-   redis:
-     flush-mode: immediate
-     save-mode: on_set_attribute
-     namespace: spring:session
+    store-type: redis
+    redis:
+      flush-mode: immediate
+      save-mode: on_set_attribute
+      namespace: spring:session
+          
+  liquibase:
+    enabled: false
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    url: jdbc:mysql://localhost:6033/bootdb?serverTimezone=UTC&allowPublicKeyRetrieval=true
+    user: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
 
 server:
   ssl:
-    enabled: true
+    enabled: true # Включает HTTPS
     key-store: classpath:keystore.p12
-    key-store-password: passkeystore
+    key-store-password: ${SSL_KEYSTORE_PASSWORD}
     key-store-type: PKCS12
   address: 0.0.0.0
   port: 8443
@@ -46,3 +57,47 @@ server:
         secure: true
   forward-headers-strategy: framework
 
+#---
+# Локальная разработка (без k3s)
+#spring:
+#  config:
+#    activate:
+#      on-profile: local
+#  data:
+#    redis:
+#      host: localhost
+#      port: 6379
+#      timeout: 2000ms
+      #  password: defaultpassword  # если Redis с паролем
+
+#---
+# k3s профиль (простая версия)
+#spring:
+#  config:
+#    activate:
+#      on-profile: k3s
+#  data:
+#    redis:
+#      host: redis-cluster  # имя сервиса в Kubernetes
+#      port: 6379
+#      timeout: 2000ms
+#      password: defaultpassword
+#
+#  management:
+#    endpoints:
+#      web:
+#        exposure:
+#          include: health,info
+#    endpoint:
+#      health:
+#        show-details: always
+#
+#logging:
+#  level:
+#    org.springframework.data.redis: INFO
+#    io.lettuce.core: WARN
+
+    # Запускает с redis на localhost:6379
+    # java -jar app.jar --spring.profiles.active=local
+    # Запускает с redis-cluster:6379 (Kubernetes service)
+    # java -jar app.jar --spring.profiles.active=k3s

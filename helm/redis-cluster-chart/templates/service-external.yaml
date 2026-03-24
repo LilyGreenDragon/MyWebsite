@@ -1,0 +1,28 @@
+# External Service для доступа снаружи кластера
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-cluster-external
+  labels:
+    app: redis-cluster
+    component: redis
+    role: external
+  annotations:
+    # Аннотации для LoadBalancer (если будете использовать)
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/azure-load-balancer-internal: "false"
+    cloud.google.com/load-balancer-type: "External"
+spec:
+  type: NodePort
+  selector:
+    app: redis-cluster
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379
+      nodePort: 30379
+      protocol: TCP
+  # Для LoadBalancer раскомментируйте:
+  # type: LoadBalancer
+  # externalTrafficPolicy: Local
+  # loadBalancerIP: "your-static-ip"  # Если нужен статический IP

@@ -1,0 +1,19 @@
+redis:
+  image: redis:7.2-alpine
+  port: 6379
+  cluster:
+    enabled: true
+    nodes: 1
+    replicas: 2
+
+service:
+  type: NodePort
+  nodePort: 30379
+
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "100m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"

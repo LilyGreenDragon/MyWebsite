@@ -28,6 +28,7 @@ public class RegisterDTO {
     private String email;
 
     @NotEmpty(message = "Field should not be empty")
+    @Size(min=1, max=70, message = "Registration password should be less then 70 characters")
     @Transient
     private String passwordReg;
 }

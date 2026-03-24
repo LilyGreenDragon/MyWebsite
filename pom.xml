@@ -140,20 +140,36 @@
 			<groupId>io.lettuce</groupId>
 			<artifactId>lettuce-core</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.liquibase</groupId>
+			<artifactId>liquibase-core</artifactId>
+		</dependency>
 
 
 	</dependencies>
 
 	<build>
+
 		<resources>
 			<resource>
 				<directory>src/main/resources</directory>
+				<filtering>false</filtering>
+
 				<excludes>
-					<exclude>application-secrets.properties</exclude>
-					<exclude>**/*-secrets.*</exclude> <!-- Все секретные файлы -->
+					<!-- Исключаем секретные файлы из итогового JAR -->
+					<!--  <exclude>applicationsecrets.properties</exclude> -->
+					<!-- <exclude>**/*.p12</exclude> -->
+					<!--  <exclude>**/*secrets.*</exclude>  -->
 				</excludes>
 			</resource>
+
 		</resources>
+
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -179,6 +195,7 @@
 					</annotationProcessorPaths>
 				</configuration>
 			</plugin>
+
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
@@ -192,6 +209,22 @@
 				</configuration>
 
 			</plugin>
+
+			<plugin>
+				<groupId>org.liquibase</groupId>
+				<artifactId>liquibase-maven-plugin</artifactId>
+				<version>4.24.0</version>
+				<configuration>
+					<url>jdbc:mysql://localhost:6033/bootdb</url>
+					<username>app</username>
+					<!-- mvn liquibase:rollback -Dliquibase.rollbackCount=1 -Ddb.password=14789 команда для отката -->
+					<password>${db.password}</password>
+					<driver>com.mysql.cj.jdbc.Driver</driver>
+					<changeLogFile>src/main/resources/db/changelog/db.changelog-master.yaml</changeLogFile>
+				</configuration>
+			</plugin>
+
+
 		</plugins>
 	</build>
 

@@ -1,0 +1,37 @@
+# Service для внутреннего доступа (Headless)
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-cluster
+  labels:
+    app: redis-cluster
+    component: redis
+    role: cluster
+spec:
+  clusterIP: None
+  selector:
+    app: redis-cluster
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379
+      protocol: TCP
+  publishNotReadyAddresses: true
+---
+# Service для реплик (только чтение)
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-cluster-replicas
+  labels:
+    app: redis-cluster
+    component: redis
+    role: replica
+spec:
+  selector:
+    app: redis-cluster
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379
+      protocol: TCP
