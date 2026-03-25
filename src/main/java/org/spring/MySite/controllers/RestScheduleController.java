@@ -1,5 +1,6 @@
 package org.spring.MySite.controllers;
 
+import jakarta.persistence.EntityManager;
 import org.spring.MySite.models.Lesson;
 import org.spring.MySite.models.Person;
 import org.spring.MySite.repositories.LessonsRepository;
@@ -15,9 +16,11 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextImpl;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.session.FindByIndexNameSessionRepository;
 import org.springframework.session.Session;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
@@ -40,6 +43,9 @@ public class RestScheduleController {
     @Autowired
     private FindByIndexNameSessionRepository<? extends Session> sessionRepository;
 
+    @Autowired
+    private EntityManager entityManager;
+
     @GetMapping("/all")
     public ResponseEntity<List<Lesson>> getAllLessons(@P Person updatedPerson) {
         System.out.println("Из /all "+ updatedPerson);
@@ -49,22 +55,27 @@ public class RestScheduleController {
 
     @PostMapping("/mylessons/{lessonId}")
     public ResponseEntity<?> addLessonToMySchedule(@PathVariable Long lessonId, @P Person updatedPerson, Authentication authentication) {
-        System.out.println(updatedPerson);
-        System.out.println("ID урока " + lessonId);
 
         try {
+
             System.out.println("В добавлении урока методе");
-            // Находим урок
+            System.out.println(updatedPerson);
+            System.out.println("ID урока из URL " + lessonId);
+
+
             Lesson lesson = lessonsRepository.findById(lessonId)
                     .orElseThrow(() -> new RuntimeException("Урок не найден: " + lessonId));
 
+            System.out.println("Найденный урок - ID: " + lesson.getId() + ", название: " + lesson.getLessonName());
+
             // Проверяем, есть ли уже такой урок у пользователя
-            if (updatedPerson.getLessons().contains(lesson)) {
+            if (updatedPerson.getLessons().stream()
+                    .anyMatch(l -> l.getId().equals(lessonId))) {
                 return ResponseEntity.badRequest()
                         .body(Map.of("message", "Урок уже добавлен в расписание"));
             }
 
-            // Добавляем урок
+
             updatedPerson.getLessons().add(lesson);
             peopleService.save(updatedPerson);
             updateAllUserSessions(authentication);
@@ -87,9 +98,9 @@ public class RestScheduleController {
         try {
             System.out.println("В delete методе");
             boolean removed = updatedPerson.getLessons().removeIf(lesson -> lesson.getId().equals(lessonId));
-            System.out.println("Удаление "+ removed);
+            System.out.println("Есть ли урок для удаления "+ removed);
             if (removed) {
-                System.out.println("Удаление "+ updatedPerson);
+                System.out.println("Человек у которого удаляется урок(уже без урока)"+ updatedPerson);
                 peopleService.save(updatedPerson);
                 System.out.println("Урок успешно удален. Уроков ПОСЛЕ удаления: " + updatedPerson.getLessons().size());
                 updateAllUserSessions(authentication);
@@ -211,21 +222,135 @@ public class RestScheduleController {
     }
 
     @DeleteMapping("/lessons/{id}")
+    @Transactional
     public ResponseEntity<?> deleteLesson(@PathVariable Long id) {
         try {
-            Lesson lesson = lessonsRepository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("Урок не найден с id: " + id));
+            System.out.println("=== УДАЛЕНИЕ УРОКА ID: " + id + " ===");
+/*
+            // Проверяем существование
+            if (!lessonsRepository.existsById(id)) {
+                System.out.println("❌ Урок с ID " + id + " не существует!");
+                return ResponseEntity.notFound().build();
+            }
+*/
+            // Получаем урок
+            Lesson lesson = lessonsRepository.findById(id).get();
+            System.out.println("Удаляемый урок: " + lesson.getLessonName());
 
-            lesson.getPeople().clear();  // очищаем список людей, связанных с уроком
+            // НАХОДИМ ВСЕХ ПОЛЬЗОВАТЕЛЕЙ С ЭТИМ УРОКОМ
+            List<Person> usersWithLesson = peopleService.findPersonsByLessonId(id);
+            System.out.println("Пользователей с этим уроком: " + usersWithLesson.size());
 
+            // 1. Сначала удаляем урок из коллекций пользователей (в памяти). Удаляет урок из Hibernate кэша на сервере.
+            for (Person person : usersWithLesson) {
+                boolean removed = person.getLessons().removeIf(l -> l.getId().equals(id));
+                System.out.println("У пользователя " + person.getUsername() + " урок удален? " + removed);
+            }
+
+            // 2. Сохраняем пользователей (чтобы обновить связи)
+            if (!usersWithLesson.isEmpty()) {
+                peopleService.saveAll(usersWithLesson);
+                System.out.println("✅ Пользователи сохранены");
+            }
+
+            // 3. Удаляем урок
             lessonsRepository.delete(lesson);
+            System.out.println("✅ Урок удален");
+
+            // 4. Принудительно сбрасываем кэш
+            entityManager.flush();
+            entityManager.clear();
+
+            // 5. Проверяем, удалился ли урок
+            boolean exists = lessonsRepository.existsById(id);
+            System.out.println("❓ Урок всё еще в БД? " + exists);
+
+            if (exists) {
+                System.err.println("⚠️ Урок НЕ УДАЛИЛСЯ!");
+            } else {
+                System.out.println("✅ Урок успешно удален из БД");
+            }
+
+            // 6. Обновляем сессии пользователей
+            for (Person person : usersWithLesson) {
+                updateUserSessionsByUsername(person.getUsername());
+            }
+
+            // 7. Обновляем текущий контекст
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getPrincipal() instanceof PersonDetails) {
+                String currentUsername = ((PersonDetails) auth.getPrincipal()).getUsername();
+                boolean isCurrentUser = usersWithLesson.stream()
+                        .anyMatch(p -> p.getUsername().equals(currentUsername));
+
+                if (isCurrentUser) {
+                    Person freshPerson = peopleService.findByUsername(currentUsername).orElseThrow();
+                    PersonDetails freshDetails = new PersonDetails(freshPerson);
+                    Authentication newAuth = new UsernamePasswordAuthenticationToken(
+                            freshDetails,
+                            auth.getCredentials(),
+                            freshDetails.getAuthorities()
+                    );
+                    SecurityContextHolder.getContext().setAuthentication(newAuth);
+                    System.out.println("✅ Текущий контекст обновлен");
+                }
+            }
+
             return ResponseEntity.ok(Map.of(
                     "message", "Урок успешно удален",
-                    "lessonId", id
+                    "lessonId", id,
+                    "deleted", !exists
             ));
+
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("message", "Ошибка при удалении урока: " + e.getMessage()));
+                    .body(Map.of("message", "Ошибка: " + e.getMessage()));
+        }
+    }
+
+    public void updateUserSessionsByUsername(String username) {
+        try {
+            // Приводим тип sessionRepository
+            FindByIndexNameSessionRepository<Session> castedRepo =
+                    (FindByIndexNameSessionRepository<Session>) sessionRepository;
+
+            // Находим все сессии пользователя
+            Map<String, Session> sessions = castedRepo.findByPrincipalName(username);
+
+            // Получаем актуального пользователя из БД
+            Person freshPerson = peopleService.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("Пользователь не найден: " + username));
+
+            // Получаем свежий список уроков из БД
+            List<Lesson> freshLessons = lessonsRepository.findByPersonId(freshPerson.getId());
+            freshPerson.setLessons(freshLessons);
+
+            // Создаем PersonDetails с актуальными данными
+            PersonDetails personDetails = new PersonDetails(freshPerson);
+
+            // Обновляем каждую сессию
+            for (Map.Entry<String, Session> entry : sessions.entrySet()) {
+                Session session = entry.getValue();
+
+                SecurityContext newContext = new SecurityContextImpl();
+                newContext.setAuthentication(new UsernamePasswordAuthenticationToken(
+                        personDetails,
+                        personDetails.getPassword(),
+                        personDetails.getAuthorities()
+                ));
+
+                session.setAttribute(
+                        HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+                        newContext
+                );
+                castedRepo.save(session);
+            }
+
+            System.out.println("Обновлены сессии для пользователя: " + username + " (сессий: " + sessions.size() + ")");
+            System.out.println("Пользователь "+ personDetails);
+        } catch (Exception e) {
+            System.err.println("Ошибка при обновлении сессий пользователя " + username + ": " + e.getMessage());
         }
     }
 

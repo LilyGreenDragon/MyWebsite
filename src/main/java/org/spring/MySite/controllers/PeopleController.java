@@ -249,7 +249,7 @@ public class PeopleController {
         updatedPerson.setSurname(person.getSurname());
         updatedPerson.setBirthdate(person.getBirthdate());
         peopleService.save(updatedPerson);
-
+        System.out.println("authentication из update person "+authentication);
         //updateSession(authentication, request);
         updateAllUserSessions(authentication);
 

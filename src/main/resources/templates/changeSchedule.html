@@ -321,6 +321,24 @@
             .modal-content {
                 margin: 20% 15px;
             }
+
+            /* Стили для ошибок в модальном окне (для надежности) */
+.modal .form-group input.error,
+.modal .form-group select.error {
+    border-color: #dc3545 !important;
+    background-color: #fff0f0;
+}
+
+.modal .error-message-field {
+    color: #dc3545;
+    font-size: 11px;
+    margin-top: 4px;
+    display: none;
+}
+
+.modal .error-message-field.show {
+    display: block;
+}
         }
     </style>
 </head>
@@ -421,22 +439,22 @@
         <div class="lesson-form" style="grid-template-columns: 1fr;">
             <div class="form-group">
                 <label>Название урока <span class="required">*</span></label>
-                <input type="text" id="editLessonName">
-                <div id="editLessonNameError" class="error-message-field"></div>
+                <input type="text" id="editlessonName">
+                <div id="editlessonNameError" class="error-message-field"></div>
             </div>
             <div class="form-group">
                 <label>Преподаватель <span class="required">*</span></label>
-                <input type="text" id="editTeacherName">
-                <div id="editTeacherNameError" class="error-message-field"></div>
+                <input type="text" id="editteacherName">
+                <div id="editteacherNameError" class="error-message-field"></div>
             </div>
             <div class="form-group">
                 <label>Аудитория <span class="required">*</span></label>
-                <input type="text" id="editRoomName">
-                <div id="editRoomNameError" class="error-message-field"></div>
+                <input type="text" id="editroomName">
+                <div id="editroomNameError" class="error-message-field"></div>
             </div>
             <div class="form-group">
                 <label>День недели <span class="required">*</span></label>
-                <select id="editDayOfWeek">
+                <select id="editdayOfWeek">
                     <option value="1">Понедельник</option>
                     <option value="2">Вторник</option>
                     <option value="3">Среда</option>
@@ -445,17 +463,17 @@
                     <option value="6">Суббота</option>
                     <option value="7">Воскресенье</option>
                 </select>
-                <div id="editDayOfWeekError" class="error-message-field"></div>
+                <div id="editdayOfWeekError" class="error-message-field"></div>
             </div>
             <div class="form-group">
                 <label>Время начала <span class="required">*</span></label>
-                <input type="time" id="editStartTime">
-                <div id="editStartTimeError" class="error-message-field"></div>
+                <input type="time" id="editstartTime">
+                <div id="editstartTimeError" class="error-message-field"></div>
             </div>
             <div class="form-group">
                 <label>Время окончания <span class="required">*</span></label>
-                <input type="time" id="editEndTime">
-                <div id="editEndTimeError" class="error-message-field"></div>
+                <input type="time" id="editendTime">
+                <div id="editendTimeError" class="error-message-field"></div>
             </div>
         </div>
         <div class="modal-buttons">
@@ -740,12 +758,12 @@
         if (!lesson) return;
 
         currentEditId = id;
-        document.getElementById('editLessonName').value = lesson.lessonName || '';
-        document.getElementById('editTeacherName').value = lesson.teacherName || '';
-        document.getElementById('editRoomName').value = lesson.roomName || '';
-        document.getElementById('editDayOfWeek').value = lesson.dayOfWeek || 1;
-        document.getElementById('editStartTime').value = lesson.startTime ? lesson.startTime.substring(0,5) : '09:00';
-        document.getElementById('editEndTime').value = lesson.endTime ? lesson.endTime.substring(0,5) : '10:00';
+        document.getElementById('editlessonName').value = lesson.lessonName || '';
+        document.getElementById('editteacherName').value = lesson.teacherName || '';
+        document.getElementById('editroomName').value = lesson.roomName || '';
+        document.getElementById('editdayOfWeek').value = lesson.dayOfWeek || 1;
+        document.getElementById('editstartTime').value = lesson.startTime ? lesson.startTime.substring(0,5) : '09:00';
+        document.getElementById('editendTime').value = lesson.endTime ? lesson.endTime.substring(0,5) : '10:00';
 
         clearErrors('edit');
         document.getElementById('editModal').style.display = 'block';
@@ -761,18 +779,33 @@
     // Обновление урока
     async function updateLesson() {
         const lessonData = {
-            lessonName: document.getElementById('editLessonName').value.trim(),
-            teacherName: document.getElementById('editTeacherName').value.trim(),
-            roomName: document.getElementById('editRoomName').value.trim(),
-            dayOfWeek: parseInt(document.getElementById('editDayOfWeek').value),
-            startTime: document.getElementById('editStartTime').value,
-            endTime: document.getElementById('editEndTime').value
+            lessonName: document.getElementById('editlessonName').value.trim(),
+            teacherName: document.getElementById('editteacherName').value.trim(),
+            roomName: document.getElementById('editroomName').value.trim(),
+            dayOfWeek: parseInt(document.getElementById('editdayOfWeek').value),
+            startTime: document.getElementById('editstartTime').value,
+            endTime: document.getElementById('editendTime').value
         };
 
         const clientErrors = validateLesson(lessonData);
+        console.log('clientErrors:', clientErrors);  // ← добавить
+    console.log('clientErrors keys:', Object.keys(clientErrors).length);  // ← добавить
         if (Object.keys(clientErrors).length > 0) {
+        console.log('Показываем ошибки с префиксом "edit"');  // ← добавить
             clearErrors('edit');
             showErrors(clientErrors, 'edit');
+
+                    // Дополнительная проверка: есть ли элементы для ошибок
+        for (const [field, message] of Object.entries(clientErrors)) {
+            const errorDiv = document.getElementById(`edit${field}Error`);
+            console.log(`Элемент edit${field}Error:`, errorDiv);
+            if (errorDiv) {
+                console.log(`Будет показана ошибка: ${message}`);
+            } else {
+                console.log(`❌ Нет элемента для edit${field}Error`);
+            }
+        }
+
             return;
         }
 

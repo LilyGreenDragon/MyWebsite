@@ -49,4 +49,11 @@ public class PeopleService {
         peopleRepository.save(person);
     }
 
+    public List<Person> findPersonsByLessonId(Long lessonId) {
+        return peopleRepository.findPersonsByLessonId(lessonId);
+    }
+    public List<Person> saveAll(List<Person> persons) {
+        return peopleRepository.saveAll(persons);
+    }
+
 }
