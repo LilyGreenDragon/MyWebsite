@@ -456,6 +456,14 @@ async function toggleLesson(lessonId) {
           });
       }
 
+             // Парсим JSON (даже при ошибке)
+             let responseData = null;
+             try {
+             responseData = await response.json();
+             } catch (e) {
+            // Если ответ не JSON
+             }
+
       if (response.ok) {
           // Обновляем локальное состояние
           if (myScheduleIds.has(lessonId)) {
@@ -470,10 +478,15 @@ async function toggleLesson(lessonId) {
           } else {
               renderMySchedule();
           }
+      } else if (response.status === 404) {
+
+                  await loadMyLessonsFromDB();
+                  await loadAllDays()
       } else {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Ошибка при обновлении расписания');
-      }
+
+          throw new Error(responseData.message || 'Ошибка при обновлении расписания');
+             }
+
   } catch (err) {
       console.error('Ошибка toggleLesson:', err);
       alert('Не удалось обновить расписание: ' + err.message);

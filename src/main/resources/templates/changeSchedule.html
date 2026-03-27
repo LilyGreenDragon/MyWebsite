@@ -823,7 +823,13 @@
                 })
             });
 
-            const responseData = await response.json();
+            // Парсим JSON (даже при ошибке)
+             let responseData = null;
+             try {
+             responseData = await response.json();
+             } catch (e) {
+            // Если ответ не JSON
+             }
 
             if (response.ok) {
                 closeModal();
@@ -833,6 +839,14 @@
                 if (responseData.errors) {
                     clearErrors('edit');
                     showErrors(responseData.errors, 'edit');
+                } else if (response.status === 404) {
+                  if (responseData?.code === 'LESSON_NOT_FOUND') {
+                  showMessage('generalError', responseData?.message, false);
+                  } else {
+                  showMessage('generalError', 'Ресурс не найден', false);
+                  }
+                  closeModal();
+                  await loadLessons();
                 } else {
                     showMessage('editGeneralError', responseData.message || 'Ошибка при обновлении урока', false);
                 }
@@ -855,14 +869,27 @@
                 headers: getCsrfHeaders()
             });
 
-            const responseData = await response.json();
+                // Парсим JSON (даже при ошибке)
+             let responseData = null;
+             try {
+             responseData = await response.json();
+             } catch (e) {
+            // Если ответ не JSON
+             }
 
             if (response.ok) {
                 await loadLessons();
                 showMessage('successMessage', responseData.message || '✅ Урок успешно удален', true);
-            } else {
+                } else if (response.status === 404) {
+                  if (responseData?.code === 'LESSON_NOT_FOUND') {
+                  showMessage('generalError', responseData?.message, false);
+                  } else {
+                  showMessage('generalError', 'Ресурс не найден', false);
+                  }
+                  await loadLessons();
+                } else {
                 showMessage('generalError', responseData.message || 'Ошибка при удалении урока', false);
-            }
+                }
         } catch (err) {
             console.error('Ошибка удаления:', err);
             showMessage('generalError', 'Ошибка: ' + err.message, false);

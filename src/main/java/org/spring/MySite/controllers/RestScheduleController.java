@@ -7,6 +7,7 @@ import org.spring.MySite.repositories.LessonsRepository;
 
 import org.spring.MySite.security.P;
 import org.spring.MySite.security.PersonDetails;
+import org.spring.MySite.services.LessonsService;
 import org.spring.MySite.services.PeopleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -33,6 +34,9 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/REST/schedule")
 public class RestScheduleController {
+
+    @Autowired
+    private LessonsService lessonsService;
 
     @Autowired
     private LessonsRepository lessonsRepository;
@@ -115,7 +119,8 @@ public class RestScheduleController {
 
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(Map.of(
-                                "message", "Урок не найден в расписании пользователя",
+                                "code", "LESSON_NOT_FOUND",
+                                "message", "Урок не найден в расписании пользователя.",
                                 "lessonId", lessonId,
                                 "success", false
                         ));
@@ -194,6 +199,16 @@ public class RestScheduleController {
     @PutMapping("/lessons/{id}")
     public ResponseEntity<?> updateLesson(@PathVariable Long id, @RequestBody Lesson lessonData, BindingResult bindingResult) {
 
+        Lesson lesson = lessonsService.findById(id);
+        if (lesson == null) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(Map.of(
+                            "code", "LESSON_NOT_FOUND",
+                            "message", "Урок не найден"
+                    ));
+        }
+
         if (bindingResult.hasErrors()) {
             Map<String, String> errors = new HashMap<>();
             for (FieldError error : bindingResult.getFieldErrors()) {
@@ -226,57 +241,50 @@ public class RestScheduleController {
     public ResponseEntity<?> deleteLesson(@PathVariable Long id) {
         try {
             System.out.println("=== УДАЛЕНИЕ УРОКА ID: " + id + " ===");
-/*
-            // Проверяем существование
-            if (!lessonsRepository.existsById(id)) {
-                System.out.println("❌ Урок с ID " + id + " не существует!");
-                return ResponseEntity.notFound().build();
+
+            Lesson lesson = lessonsService.findById(id);
+            if (lesson == null) {
+                return ResponseEntity
+                        .status(HttpStatus.NOT_FOUND)
+                        .body(Map.of(
+                                "code", "LESSON_NOT_FOUND",
+                                "message", "Урок не найден"
+                        ));
             }
-*/
-            // Получаем урок
-            Lesson lesson = lessonsRepository.findById(id).get();
-            System.out.println("Удаляемый урок: " + lesson.getLessonName());
 
             // НАХОДИМ ВСЕХ ПОЛЬЗОВАТЕЛЕЙ С ЭТИМ УРОКОМ
             List<Person> usersWithLesson = peopleService.findPersonsByLessonId(id);
-            System.out.println("Пользователей с этим уроком: " + usersWithLesson.size());
 
-            // 1. Сначала удаляем урок из коллекций пользователей (в памяти). Удаляет урок из Hibernate кэша на сервере.
+            // 1. Сначала удаляем урок из коллекций пользователей (в памяти). Удаляет урок из Hibernate кэша на сервере приложения.
             for (Person person : usersWithLesson) {
                 boolean removed = person.getLessons().removeIf(l -> l.getId().equals(id));
                 System.out.println("У пользователя " + person.getUsername() + " урок удален? " + removed);
             }
-
-            // 2. Сохраняем пользователей (чтобы обновить связи)
+/*
+            // 2. Сохраняем пользователей (чтобы обновить связи) Не надо так как у нас on delete cascade в person_lessons
             if (!usersWithLesson.isEmpty()) {
                 peopleService.saveAll(usersWithLesson);
                 System.out.println("✅ Пользователи сохранены");
             }
-
+*/
             // 3. Удаляем урок
             lessonsRepository.delete(lesson);
             System.out.println("✅ Урок удален");
-
+/*
             // 4. Принудительно сбрасываем кэш
-            entityManager.flush();
-            entityManager.clear();
-
+            entityManager.flush();  // Принудительно выполняет все SQL,влияет ТОЛЬКО на текущую сессию
+            entityManager.clear(); // Очищает ВЕСЬ персистентный контекст,влияет ТОЛЬКО на текущую сессию
+*/
             // 5. Проверяем, удалился ли урок
             boolean exists = lessonsRepository.existsById(id);
             System.out.println("❓ Урок всё еще в БД? " + exists);
-
-            if (exists) {
-                System.err.println("⚠️ Урок НЕ УДАЛИЛСЯ!");
-            } else {
-                System.out.println("✅ Урок успешно удален из БД");
-            }
 
             // 6. Обновляем сессии пользователей
             for (Person person : usersWithLesson) {
                 updateUserSessionsByUsername(person.getUsername());
             }
 
-            // 7. Обновляем текущий контекст
+            // 7. Обновляем текущий контекст(тут он не нужен, так как мы не возвращаем текущего пользователя после этого в этом методе)
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             if (auth != null && auth.getPrincipal() instanceof PersonDetails) {
                 String currentUsername = ((PersonDetails) auth.getPrincipal()).getUsername();
@@ -321,10 +329,6 @@ public class RestScheduleController {
             // Получаем актуального пользователя из БД
             Person freshPerson = peopleService.findByUsername(username)
                     .orElseThrow(() -> new RuntimeException("Пользователь не найден: " + username));
-
-            // Получаем свежий список уроков из БД
-            List<Lesson> freshLessons = lessonsRepository.findByPersonId(freshPerson.getId());
-            freshPerson.setLessons(freshLessons);
 
             // Создаем PersonDetails с актуальными данными
             PersonDetails personDetails = new PersonDetails(freshPerson);
