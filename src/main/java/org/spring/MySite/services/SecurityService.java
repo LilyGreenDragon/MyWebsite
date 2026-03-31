@@ -19,12 +19,28 @@ public class SecurityService {
         } else if (principal instanceof OAuth2User) {
             OAuth2User oauth2User = (OAuth2User) principal;
             String username = oauth2User.getAttribute("login");
-            return peopleService.findByUsername(username).get();
+            return peopleService.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("Пользователь не найден: " + username));
 
-                    //.orElseGet(() -> convertOAuth2UserToPerson(oauthUser));
+            //.orElseGet(() -> convertOAuth2UserToPerson(oauthUser));
         }
         return null;
     }
+
+        public Person resolvePrincipalFromDB(Object principal) {
+            if (principal instanceof PersonDetails) {
+                String username = ((PersonDetails) principal).getUsername();
+                return peopleService.findByUsername(username)
+                        .orElseThrow(() -> new RuntimeException("Пользователь не найден: " + username));
+            } else if (principal instanceof OAuth2User) {
+                OAuth2User oauth2User = (OAuth2User) principal;
+                String username = oauth2User.getAttribute("login");
+                return peopleService.findByUsername(username)
+                        .orElseThrow(() -> new RuntimeException("Пользователь не найден: " + username));
+            }
+            return null;
+        }
+
 
 
    /* private Person convertOAuth2UserToPerson(OAuth2User oauthUser) {

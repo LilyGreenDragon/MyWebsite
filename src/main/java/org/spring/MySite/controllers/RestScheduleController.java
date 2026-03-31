@@ -6,6 +6,7 @@ import org.spring.MySite.models.Person;
 import org.spring.MySite.repositories.LessonsRepository;
 
 import org.spring.MySite.security.P;
+import org.spring.MySite.security.PDB;
 import org.spring.MySite.security.PersonDetails;
 import org.spring.MySite.services.LessonsService;
 import org.spring.MySite.services.PeopleService;
@@ -51,43 +52,43 @@ public class RestScheduleController {
     private EntityManager entityManager;
 
     @GetMapping("/all")
-    public ResponseEntity<List<Lesson>> getAllLessons(@P Person updatedPerson) {
-        System.out.println("Из /all "+ updatedPerson);
+    public ResponseEntity<List<Lesson>> getAllLessons() {
         List<Lesson> lessons = lessonsRepository.findAllByOrderByDayOfWeekAscStartTimeAsc();
         return ResponseEntity.ok(lessons);
     }
 
+    @GetMapping("/allmylessons")
+    public ResponseEntity<List<Lesson>> getMyLessons(@P Person updatedPerson) {
+        List<Lesson> lessons = updatedPerson.getLessons();
+        System.out.println("ALL MY LESSONS " + updatedPerson);
+        return ResponseEntity.ok(lessons);
+    }
+
     @PostMapping("/mylessons/{lessonId}")
-    public ResponseEntity<?> addLessonToMySchedule(@PathVariable Long lessonId, @P Person updatedPerson, Authentication authentication) {
+    public ResponseEntity<?> addLessonToMySchedule(@PathVariable Long lessonId, @PDB Person updatedPersonDB, Authentication authentication) {
 
         try {
 
-            System.out.println("В добавлении урока методе");
-            System.out.println(updatedPerson);
-            System.out.println("ID урока из URL " + lessonId);
-
+            System.out.println("В методе добавления урока");
 
             Lesson lesson = lessonsRepository.findById(lessonId)
                     .orElseThrow(() -> new RuntimeException("Урок не найден: " + lessonId));
 
-            System.out.println("Найденный урок - ID: " + lesson.getId() + ", название: " + lesson.getLessonName());
-
             // Проверяем, есть ли уже такой урок у пользователя
-            if (updatedPerson.getLessons().stream()
+            if (updatedPersonDB.getLessons().stream()
                     .anyMatch(l -> l.getId().equals(lessonId))) {
                 return ResponseEntity.badRequest()
                         .body(Map.of("message", "Урок уже добавлен в расписание"));
             }
 
-
-            updatedPerson.getLessons().add(lesson);
-            peopleService.save(updatedPerson);
-            updateAllUserSessions(authentication);
+            updatedPersonDB.getLessons().add(lesson);
+            peopleService.save(updatedPersonDB);
+            updateAllUserSessions(updatedPersonDB);
 
             return ResponseEntity.ok(Map.of(
                     "message", "Урок успешно добавлен",
                     "lessonId", lessonId,
-                    "personId", updatedPerson.getId()
+                    "personId", updatedPersonDB.getId()
             ));
 
         } catch (Exception e) {
@@ -98,16 +99,17 @@ public class RestScheduleController {
 
 
     @DeleteMapping("/mylessons/{lessonId}")
-    public ResponseEntity<?> removeLessonFromMySchedule(@PathVariable Long lessonId, @P Person updatedPerson, Authentication authentication) {
+    public ResponseEntity<?> removeLessonFromMySchedule(@PathVariable Long lessonId, @PDB Person updatedPersonDB) {
         try {
             System.out.println("В delete методе");
-            boolean removed = updatedPerson.getLessons().removeIf(lesson -> lesson.getId().equals(lessonId));
+            boolean removed = updatedPersonDB.getLessons().removeIf(lesson -> lesson.getId().equals(lessonId));
             System.out.println("Есть ли урок для удаления "+ removed);
             if (removed) {
-                System.out.println("Человек у которого удаляется урок(уже без урока)"+ updatedPerson);
-                peopleService.save(updatedPerson);
-                System.out.println("Урок успешно удален. Уроков ПОСЛЕ удаления: " + updatedPerson.getLessons().size());
-                updateAllUserSessions(authentication);
+                System.out.println("Человек у которого удалился урок(уже без урока)"+ updatedPersonDB);
+                peopleService.save(updatedPersonDB);
+                System.out.println("Урок успешно удален. Уроков ПОСЛЕ удаления: " + updatedPersonDB.getLessons().size());
+
+                updateAllUserSessions(updatedPersonDB);
 
                 return ResponseEntity.ok(Map.of(
                         "message", "Урок успешно удален",
@@ -138,41 +140,44 @@ public class RestScheduleController {
         }
     }
 
-    @GetMapping("/allmylessons")
-    public ResponseEntity<List<Lesson>> getMyLessons(@P Person updatedPerson) {
-        System.out.println("В allmylessons методе");
-        List<Lesson> lessons = updatedPerson.getLessons();
-        return ResponseEntity.ok(lessons);
-    }
 
     //Метод нужен если сессии хранятся в redis,работает когда у пользователя несколько сессий
-    public void updateAllUserSessions(Authentication authentication) {
-        Object principal = authentication.getPrincipal();
+    public void updateAllUserSessions(Person updatedPersonDB) {
+        String username = updatedPersonDB.getUsername();
 
-        if (principal instanceof PersonDetails personDetails) {
-            String username = personDetails.getUsername();
+        PersonDetails freshDetails = new PersonDetails(updatedPersonDB);
 
-            // Приводим тип sessionRepository
-            FindByIndexNameSessionRepository<Session> castedRepo =
-                    (FindByIndexNameSessionRepository<Session>) sessionRepository;
+        Authentication newAuth = new UsernamePasswordAuthenticationToken(
+                freshDetails,
+                freshDetails.getPassword(),
+                freshDetails.getAuthorities()
+        );
 
-            Map<String, Session> sessions = castedRepo.findByPrincipalName(username);
+        // Обновляем текущий SecurityContext
+        SecurityContextHolder.getContext().setAuthentication(newAuth);
 
-            for (Map.Entry<String, Session> entry : sessions.entrySet()) {
-                Session session = entry.getValue();
+        // Обновляем все сессии в Redis
+        FindByIndexNameSessionRepository<Session> castedRepo =
+                (FindByIndexNameSessionRepository<Session>) sessionRepository;
 
-                SecurityContext newContext = new SecurityContextImpl();
-                newContext.setAuthentication(new UsernamePasswordAuthenticationToken(
-                        personDetails,
-                        personDetails.getPassword(),
-                        personDetails.getAuthorities()
-                ));
+        Map<String, Session> sessions = castedRepo.findByPrincipalName(username);
 
-                session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, newContext); //сейчас SPRING_SECURITY_CONTEXT_KEY = "SPRING_SECURITY_CONTEXT"
-                castedRepo.save(session);
-            }
+        for (Map.Entry<String, Session> entry : sessions.entrySet()) {
+            Session session = entry.getValue();
+
+            SecurityContext newContext = new SecurityContextImpl();
+            newContext.setAuthentication(newAuth);
+
+            session.setAttribute(
+                    HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+                    newContext
+            );
+            castedRepo.save(session);
         }
+
+        System.out.println("✅ Обновлены сессии для пользователя: " + username);
     }
+
 
     @PostMapping("/lessons")
     public ResponseEntity<?> createLesson(@RequestBody Lesson lesson,  BindingResult bindingResult) {
@@ -220,6 +225,7 @@ public class RestScheduleController {
             Lesson existingLesson = lessonsRepository.findById(id)
                     .orElseThrow(() -> new RuntimeException("Урок не найден с id: " + id));
 
+
         // Обновляем поля
         existingLesson.setLessonName(lessonData.getLessonName());
         existingLesson.setTeacherName(lessonData.getTeacherName());
@@ -229,6 +235,7 @@ public class RestScheduleController {
         existingLesson.setEndTime(lessonData.getEndTime());
 
             Lesson updatedLesson = lessonsRepository.save(existingLesson);
+
             return ResponseEntity.ok(Map.of(
                     "message", "Урок успешно обновлен",
                     "lesson", updatedLesson
@@ -238,7 +245,7 @@ public class RestScheduleController {
 
     @DeleteMapping("/lessons/{id}")
     @Transactional
-    public ResponseEntity<?> deleteLesson(@PathVariable Long id) {
+    public ResponseEntity<?> deleteLesson(@PathVariable Long id, @P Person updatedPerson) {
         try {
             System.out.println("=== УДАЛЕНИЕ УРОКА ID: " + id + " ===");
 
@@ -255,53 +262,46 @@ public class RestScheduleController {
             // НАХОДИМ ВСЕХ ПОЛЬЗОВАТЕЛЕЙ С ЭТИМ УРОКОМ
             List<Person> usersWithLesson = peopleService.findPersonsByLessonId(id);
 
-            // 1. Сначала удаляем урок из коллекций пользователей (в памяти). Удаляет урок из Hibernate кэша на сервере приложения.
+            // Сначала удаляем урок из коллекций пользователей (в памяти). Удаляет урок из Hibernate кэша на сервере приложения.
             for (Person person : usersWithLesson) {
                 boolean removed = person.getLessons().removeIf(l -> l.getId().equals(id));
                 System.out.println("У пользователя " + person.getUsername() + " урок удален? " + removed);
             }
-/*
-            // 2. Сохраняем пользователей (чтобы обновить связи) Не надо так как у нас on delete cascade в person_lessons
-            if (!usersWithLesson.isEmpty()) {
-                peopleService.saveAll(usersWithLesson);
-                System.out.println("✅ Пользователи сохранены");
-            }
-*/
-            // 3. Удаляем урок
+
+            // Удаляем урок
             lessonsRepository.delete(lesson);
-            System.out.println("✅ Урок удален");
+            System.out.println("DELETE LESSON " + updatedPerson);
+
+
 /*
-            // 4. Принудительно сбрасываем кэш
+            // Принудительно сбрасываем кэш
             entityManager.flush();  // Принудительно выполняет все SQL,влияет ТОЛЬКО на текущую сессию
             entityManager.clear(); // Очищает ВЕСЬ персистентный контекст,влияет ТОЛЬКО на текущую сессию
 */
-            // 5. Проверяем, удалился ли урок
+            // Проверяем, удалился ли урок
             boolean exists = lessonsRepository.existsById(id);
             System.out.println("❓ Урок всё еще в БД? " + exists);
 
-            // 6. Обновляем сессии пользователей
+            // Обновляем сессии пользователей
             for (Person person : usersWithLesson) {
                 updateUserSessionsByUsername(person.getUsername());
             }
 
-            // 7. Обновляем текущий контекст(тут он не нужен, так как мы не возвращаем текущего пользователя после этого в этом методе)
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            if (auth != null && auth.getPrincipal() instanceof PersonDetails) {
-                String currentUsername = ((PersonDetails) auth.getPrincipal()).getUsername();
-                boolean isCurrentUser = usersWithLesson.stream()
-                        .anyMatch(p -> p.getUsername().equals(currentUsername));
 
-                if (isCurrentUser) {
-                    Person freshPerson = peopleService.findByUsername(currentUsername).orElseThrow();
-                    PersonDetails freshDetails = new PersonDetails(freshPerson);
-                    Authentication newAuth = new UsernamePasswordAuthenticationToken(
-                            freshDetails,
-                            auth.getCredentials(),
-                            freshDetails.getAuthorities()
-                    );
-                    SecurityContextHolder.getContext().setAuthentication(newAuth);
-                    System.out.println("✅ Текущий контекст обновлен");
-                }
+            //Обновляем контекст текущего пользователя
+            boolean isCurrentUser = usersWithLesson.stream()
+                    .anyMatch(p -> p.getUsername().equals(updatedPerson.getUsername()));
+
+            if (isCurrentUser) {
+                Person freshPerson = peopleService.findByUsername(updatedPerson.getUsername()).orElseThrow();
+                PersonDetails freshDetails = new PersonDetails(freshPerson);
+                Authentication newAuth = new UsernamePasswordAuthenticationToken(
+                        freshDetails,
+                        freshDetails.getPassword(), //auth.getCredentials(),
+                        freshDetails.getAuthorities()
+                );
+                SecurityContextHolder.getContext().setAuthentication(newAuth);
+                System.out.println("✅ Текущий контекст обновлен");
             }
 
             return ResponseEntity.ok(Map.of(
