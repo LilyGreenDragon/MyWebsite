@@ -30,6 +30,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
@@ -65,14 +66,24 @@ public class RestScheduleController {
     }
 
     @PostMapping("/mylessons/{lessonId}")
-    public ResponseEntity<?> addLessonToMySchedule(@PathVariable Long lessonId, @PDB Person updatedPersonDB, Authentication authentication) {
+    public ResponseEntity<?> addLessonToMySchedule(@PathVariable Long lessonId, @PDB Person updatedPersonDB) {
 
         try {
 
             System.out.println("В методе добавления урока");
-
+/*
             Lesson lesson = lessonsRepository.findById(lessonId)
                     .orElseThrow(() -> new RuntimeException("Урок не найден: " + lessonId));
+*/
+            Lesson lesson = lessonsService.findById(lessonId);
+            if (lesson == null) {
+                return ResponseEntity
+                        .status(HttpStatus.NOT_FOUND)
+                        .body(Map.of(
+                                "code", "LESSON_NOT_FOUND",
+                                "message", "Урок не найден"
+                        ));
+            }
 
             // Проверяем, есть ли уже такой урок у пользователя
             if (updatedPersonDB.getLessons().stream()
@@ -88,10 +99,13 @@ public class RestScheduleController {
             return ResponseEntity.ok(Map.of(
                     "message", "Урок успешно добавлен",
                     "lessonId", lessonId,
-                    "personId", updatedPersonDB.getId()
+                    "personUsername", updatedPersonDB.getUsername()
             ));
 
         } catch (Exception e) {
+            System.err.println("Ошибка при добавлении урока: " + e.getMessage());
+            e.printStackTrace();
+
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("message", "Ошибка при добавлении урока: " + e.getMessage()));
         }
@@ -101,11 +115,10 @@ public class RestScheduleController {
     @DeleteMapping("/mylessons/{lessonId}")
     public ResponseEntity<?> removeLessonFromMySchedule(@PathVariable Long lessonId, @PDB Person updatedPersonDB) {
         try {
-            System.out.println("В delete методе");
+            System.out.println("В методе удаления урока из расписания");
             boolean removed = updatedPersonDB.getLessons().removeIf(lesson -> lesson.getId().equals(lessonId));
             System.out.println("Есть ли урок для удаления "+ removed);
             if (removed) {
-                System.out.println("Человек у которого удалился урок(уже без урока)"+ updatedPersonDB);
                 peopleService.save(updatedPersonDB);
                 System.out.println("Урок успешно удален. Уроков ПОСЛЕ удаления: " + updatedPersonDB.getLessons().size());
 
@@ -122,7 +135,7 @@ public class RestScheduleController {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(Map.of(
                                 "code", "LESSON_NOT_FOUND",
-                                "message", "Урок не найден в расписании пользователя.",
+                                "message", "Урок не найден в расписании пользователя",
                                 "lessonId", lessonId,
                                 "success", false
                         ));
@@ -140,10 +153,13 @@ public class RestScheduleController {
         }
     }
 
-
+    //Обновление всех сессий пользователя(пользователь из метода)
     //Метод нужен если сессии хранятся в redis,работает когда у пользователя несколько сессий
     public void updateAllUserSessions(Person updatedPersonDB) {
+
         String username = updatedPersonDB.getUsername();
+
+        try {
 
         PersonDetails freshDetails = new PersonDetails(updatedPersonDB);
 
@@ -176,6 +192,9 @@ public class RestScheduleController {
         }
 
         System.out.println("✅ Обновлены сессии для пользователя: " + username);
+        } catch (Exception e) {
+            System.err.println("Ошибка при обновлении сессий пользователя " + username + ": " + e.getMessage());
+        }
     }
 
 
@@ -192,7 +211,6 @@ public class RestScheduleController {
         }
 
             Lesson savedLesson = lessonsRepository.save(lesson);
-        System.out.println(savedLesson);
 
     return ResponseEntity.status(HttpStatus.CREATED)
             .body(Map.of(
@@ -202,17 +220,7 @@ public class RestScheduleController {
     }
 
     @PutMapping("/lessons/{id}")
-    public ResponseEntity<?> updateLesson(@PathVariable Long id, @RequestBody Lesson lessonData, BindingResult bindingResult) {
-
-        Lesson lesson = lessonsService.findById(id);
-        if (lesson == null) {
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .body(Map.of(
-                            "code", "LESSON_NOT_FOUND",
-                            "message", "Урок не найден"
-                    ));
-        }
+    public ResponseEntity<?> updateLesson(@PathVariable Long id, @RequestBody Lesson lessonData, BindingResult bindingResult, @P Person updatedPerson) {
 
         if (bindingResult.hasErrors()) {
             Map<String, String> errors = new HashMap<>();
@@ -222,9 +230,15 @@ public class RestScheduleController {
             return ResponseEntity.badRequest().body(Map.of("errors", errors));
         }
 
-            Lesson existingLesson = lessonsRepository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("Урок не найден с id: " + id));
-
+        Lesson existingLesson  = lessonsService.findById(id);
+        if (existingLesson  == null) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(Map.of(
+                            "code", "LESSON_NOT_FOUND",
+                            "message", "Урок не найден"
+                    ));
+        }
 
         // Обновляем поля
         existingLesson.setLessonName(lessonData.getLessonName());
@@ -234,7 +248,42 @@ public class RestScheduleController {
         existingLesson.setStartTime(lessonData.getStartTime());
         existingLesson.setEndTime(lessonData.getEndTime());
 
+        // НАХОДИМ ВСЕХ ПОЛЬЗОВАТЕЛЕЙ С ЭТИМ УРОКОМ
+        List<Person> usersWithLesson = peopleService.findPersonsByLessonId(id);
+
+        // Обновляем урок в коллекциях пользователей (в памяти)
+        for (Person person : usersWithLesson) {
+            List<Lesson> updatedLessons = person.getLessons().stream()
+                    .map(lesson -> lesson.getId().equals(id) ? existingLesson : lesson)
+                    .collect(Collectors.toList());
+
+            // Заменяем старый список новым
+            person.setLessons(updatedLessons);
+            System.out.println("У пользователя " + person.getUsername() + " урок обновлен");
+        }
+
             Lesson updatedLesson = lessonsRepository.save(existingLesson);
+
+        // Обновляем сессии пользователей
+        for (Person person : usersWithLesson) {
+            updateUserSessionsByUsername(person.getUsername());
+        }
+
+        //Обновляем контекст текущего пользователя
+        boolean isCurrentUser = usersWithLesson.stream()
+                .anyMatch(p -> p.getUsername().equals(updatedPerson.getUsername()));
+
+        if (isCurrentUser) {
+            Person freshPerson = peopleService.findByUsername(updatedPerson.getUsername()).orElseThrow();
+            PersonDetails freshDetails = new PersonDetails(freshPerson);
+            Authentication newAuth = new UsernamePasswordAuthenticationToken(
+                    freshDetails,
+                    freshDetails.getPassword(), //auth.getCredentials(),
+                    freshDetails.getAuthorities()
+            );
+            SecurityContextHolder.getContext().setAuthentication(newAuth);
+            System.out.println("✅ Текущий контекст обновлен");
+        }
 
             return ResponseEntity.ok(Map.of(
                     "message", "Урок успешно обновлен",
@@ -247,7 +296,7 @@ public class RestScheduleController {
     @Transactional
     public ResponseEntity<?> deleteLesson(@PathVariable Long id, @P Person updatedPerson) {
         try {
-            System.out.println("=== УДАЛЕНИЕ УРОКА ID: " + id + " ===");
+            System.out.println("Метод удаления урока ID: " + id );
 
             Lesson lesson = lessonsService.findById(id);
             if (lesson == null) {
@@ -270,9 +319,6 @@ public class RestScheduleController {
 
             // Удаляем урок
             lessonsRepository.delete(lesson);
-            System.out.println("DELETE LESSON " + updatedPerson);
-
-
 /*
             // Принудительно сбрасываем кэш
             entityManager.flush();  // Принудительно выполняет все SQL,влияет ТОЛЬКО на текущую сессию
@@ -286,7 +332,6 @@ public class RestScheduleController {
             for (Person person : usersWithLesson) {
                 updateUserSessionsByUsername(person.getUsername());
             }
-
 
             //Обновляем контекст текущего пользователя
             boolean isCurrentUser = usersWithLesson.stream()
@@ -311,12 +356,15 @@ public class RestScheduleController {
             ));
 
         } catch (Exception e) {
+            System.err.println("Ошибка при удалении урока: " + e.getMessage());
             e.printStackTrace();
+
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("message", "Ошибка: " + e.getMessage()));
+                    .body(Map.of("message", "Ошибка при удалении урока: " + e.getMessage()));
         }
     }
 
+    //Обновление всех сессий пользователя(пользователь из БД)
     public void updateUserSessionsByUsername(String username) {
         try {
             // Приводим тип sessionRepository
@@ -352,7 +400,7 @@ public class RestScheduleController {
             }
 
             System.out.println("Обновлены сессии для пользователя: " + username + " (сессий: " + sessions.size() + ")");
-            System.out.println("Пользователь "+ personDetails);
+
         } catch (Exception e) {
             System.err.println("Ошибка при обновлении сессий пользователя " + username + ": " + e.getMessage());
         }

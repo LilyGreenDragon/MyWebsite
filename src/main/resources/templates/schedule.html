@@ -478,8 +478,8 @@ async function toggleLesson(lessonId) {
           } else {
               renderMySchedule();
           }
-      } else if (response.status === 404) {
-
+      } else if (response.status === 404 || response.status === 400) {
+                  console.error('Ошибка:', responseData?.message || 'Ошибка запроса');
                   await loadMyLessonsFromDB();
                   await loadAllDays()
       } else {
@@ -489,7 +489,8 @@ async function toggleLesson(lessonId) {
 
   } catch (err) {
       console.error('Ошибка toggleLesson:', err);
-      alert('Не удалось обновить расписание: ' + err.message);
+      // alert('Не удалось обновить расписание: ' + err.message);
+      alert('Не удалось обновить расписание');
   }
 }
 
