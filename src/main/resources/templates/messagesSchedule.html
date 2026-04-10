@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Сообщения</title>
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #ebe8e1;
+            background-image: url(/images/templatemo_body.jpg);
+            background-repeat: no-repeat;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        h1 {
+            background: linear-gradient(135deg, #e1dc5e 0%, #c9c447 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-size: 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .back-button {
+            background: #6c757d;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 14px;
+            margin-right: 10px;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .back-button:hover {
+            background: #5a6268;
+            transform: scale(1.05);
+        }
+
+        .title-container {
+            display: flex;
+            align-items: center;
+            gap: 0px;
+        }
+
+        .form-container {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .form-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .message-form {
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+        }
+
+        .message-form .form-group {
+            flex: 1;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .form-group textarea {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #e1dc5e;
+        }
+
+        .submit-btn {
+            background: #e1dc5e;
+            color: #333;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            margin-top: 24px;
+        }
+
+        .submit-btn:hover {
+            background: #c9c447;
+            transform: scale(1.02);
+        }
+
+        .messages-container {
+            padding: 20px;
+        }
+
+        .messages-list {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 10px;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+
+        .message-item {
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 3px solid #e1dc5e;
+            word-wrap: break-word;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .message-text {
+            font-size: 14px;
+            color: #333;
+            line-height: 1.4;
+            flex: 1;
+        }
+
+        .delete-message-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .delete-message-btn:hover {
+            background: #c82333;
+            transform: scale(1.05);
+        }
+
+        .no-messages {
+            text-align: center;
+            color: #999;
+            padding: 10px;
+            font-style: italic;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        @media (max-width: 600px) {
+            .message-form {
+                flex-direction: column;
+            }
+            .submit-btn {
+                margin-top: 0;
+            }
+            .message-item {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>
+        <div class="title-container">
+            <a href="/changeSchedule" class="back-button">← Управление уроками</a>
+            💬 Сообщения
+        </div>
+    </h1>
+
+    <!-- Форма создания сообщения -->
+    <div class="form-container">
+        <div class="form-title">✏️ Написать сообщение</div>
+        <div class="message-form">
+            <div class="form-group">
+                <textarea id="messageText" rows="3" placeholder="Введите сообщение..." maxlength="200"></textarea>
+            </div>
+            <button class="submit-btn" onclick="sendMessage()">📤 Отправить</button>
+        </div>
+        <div id="messageError" class="error-message"></div>
+        <div id="messageSuccess" class="success-message"></div>
+    </div>
+
+    <!-- Список сообщений -->
+    <div class="messages-container">
+        <div class="form-title">📋 Все сообщения</div>
+        <div id="messagesList" class="messages-list">
+            <div class="no-messages">Загрузка...</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const csrfToken = document.querySelector('meta[name="_csrf"]')?.content;
+    const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
+
+    function getCsrfHeaders() {
+        const headers = { 'Content-Type': 'application/json' };
+        if (csrfToken && csrfHeader) {
+            headers[csrfHeader] = csrfToken;
+        }
+        return headers;
+    }
+
+    function showMessage(elementId, message, isSuccess = true) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.textContent = message;
+            element.style.display = 'block';
+            setTimeout(() => {
+                element.style.display = 'none';
+            }, 3000);
+        }
+    }
+
+    // Загрузка всех сообщений
+    async function loadMessages() {
+        try {
+            const response = await fetch('/REST/schedule/messages');
+            if (response.ok) {
+                const messages = await response.json();
+                displayMessages(messages);
+            } else {
+                console.error('Ошибка загрузки сообщений');
+            }
+        } catch (err) {
+            console.error('Ошибка загрузки сообщений:', err);
+        }
+    }
+
+    // Отображение сообщений (с кнопкой удаления)
+    function displayMessages(messages) {
+        const container = document.getElementById('messagesList');
+        if (!container) return;
+
+        if (!messages || messages.length === 0) {
+            container.innerHTML = '<div class="no-messages">📭 Пока нет сообщений</div>';
+            return;
+        }
+
+        let html = '';
+        messages.forEach(msg => {
+            html += `
+                <div class="message-item" data-id="${msg.id}">
+                    <div class="message-text">✉️ ${escapeHtml(msg.textMessage)}</div>
+                    <button class="delete-message-btn" onclick="deleteMessage(${msg.id})">🗑️ Удалить</button>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+        container.scrollTop = container.scrollHeight;
+    }
+
+    // Отправка сообщения
+    async function sendMessage() {
+        const textarea = document.getElementById('messageText');
+        const text = textarea.value.trim();
+
+        if (!text) {
+            showMessage('messageError', 'Введите сообщение', false);
+            return;
+        }
+
+        if (text.length < 2) {
+            showMessage('messageError', 'Сообщение должно быть не менее 2 символов', false);
+            return;
+        }
+
+        if (text.length > 200) {
+            showMessage('messageError', 'Сообщение должно быть не более 200 символов', false);
+            return;
+        }
+
+        try {
+            const response = await fetch('/REST/schedule/messages', {
+                method: 'POST',
+                headers: getCsrfHeaders(),
+                body: JSON.stringify({ textMessage: text })
+            });
+
+            if (response.ok) {
+                textarea.value = '';
+                showMessage('messageSuccess', '✅ Сообщение отправлено', true);
+                await loadMessages();
+            } else {
+                const error = await response.json();
+                showMessage('messageError', error.message || 'Ошибка при отправке', false);
+            }
+        } catch (err) {
+            console.error('Ошибка отправки:', err);
+            showMessage('messageError', 'Ошибка соединения', false);
+        }
+    }
+
+    // Удаление сообщения
+    async function deleteMessage(id) {
+        if (!confirm('Вы уверены, что хотите удалить это сообщение?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/REST/schedule/messages/${id}`, {
+                method: 'DELETE',
+                headers: getCsrfHeaders()
+            });
+
+            if (response.ok) {
+                showMessage('messageSuccess', '✅ Сообщение удалено', true);
+                await loadMessages();
+            } else {
+                const error = await response.json();
+                showMessage('messageError', error.message || 'Ошибка при удалении', false);
+            }
+        } catch (err) {
+            console.error('Ошибка удаления:', err);
+            showMessage('messageError', 'Ошибка соединения', false);
+        }
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        return text.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadMessages();
+    });
+</script>
+
+</body>
+</html>

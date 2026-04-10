@@ -1,10 +1,13 @@
 package org.spring.MySite.controllers;
 
 import jakarta.persistence.EntityManager;
+import jakarta.validation.Valid;
 import org.spring.MySite.models.Lesson;
+import org.spring.MySite.models.Message;
 import org.spring.MySite.models.Person;
 import org.spring.MySite.repositories.LessonsRepository;
 
+import org.spring.MySite.repositories.MessageRepository;
 import org.spring.MySite.security.P;
 import org.spring.MySite.security.PDB;
 import org.spring.MySite.security.PersonDetails;
@@ -13,6 +16,7 @@ import org.spring.MySite.services.PeopleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -51,6 +55,12 @@ public class RestScheduleController {
 
     @Autowired
     private EntityManager entityManager;
+
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
+
+    @Autowired
+    private MessageRepository messageRepository;
 
     @GetMapping("/all")
     public ResponseEntity<List<Lesson>> getAllLessons() {
@@ -405,5 +415,43 @@ public class RestScheduleController {
             System.err.println("Ошибка при обновлении сессий пользователя " + username + ": " + e.getMessage());
         }
     }
+
+    //Разобраться с эндпойнтами тут и в html, создать таблицу в бд
+    @GetMapping("/messages")
+    public ResponseEntity<List<Message>> getAllMessages() {
+        List<Message> messages = messageRepository.findAll();
+        return ResponseEntity.ok(messages);
+    }
+
+    @PostMapping("/messages")
+    public ResponseEntity<?> createMessage(@Valid @RequestBody Message message) {
+        try {
+            // Сохраняем в БД
+            Message savedMessage = messageRepository.save(message);
+
+            // Рассылаем новое сообщение ВСЕМ подключенным клиентам через WebSocket
+            messagingTemplate.convertAndSend("/topic/messages", savedMessage);
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(savedMessage);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Ошибка при сохранении сообщения: " + e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/messages/{id}")
+    public ResponseEntity<?> deleteMessage(@PathVariable Long id) {
+        if (!messageRepository.existsById(id)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", "Сообщение не найдено"));
+        }
+
+        messageRepository.deleteById(id);
+        // ✅ Рассылаем ID удалённого сообщения всем клиентам
+        messagingTemplate.convertAndSend("/topic/messages/delete", Map.of("id", id));
+        return ResponseEntity.ok(Map.of("message", "Сообщение успешно удалено"));
+    }
+
 
 }

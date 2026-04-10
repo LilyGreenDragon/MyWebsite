@@ -134,6 +134,7 @@ h6 { font-size: 14px; margin: 0 0 5px; padding: 0; }
 }
 
 #templatemo_main_photo {
+   position: relative
 	clear: both;
 	width: 870px;
 	margin: 0 0 0 6px;
@@ -151,9 +152,33 @@ h6 { font-size: 14px; margin: 0 0 5px; padding: 0; }
 .content_services { background: url(images/templatemo_content_services.png) no-repeat }
 .content_portfolio { background: url(images/templatemo_content_portfolio.png) no-repeat }
 .content_contactus { background: url(/images/templatemo_content_title.png) no-repeat }
-
+/*
 a.gototop { display: block; position: absolute; width: 140px; height: 25px; padding: 65px 10px 0 0; text-align: right; font-size: 14px; bottom: 0; right: 0; color: #000; background: url(/images/templatemo_gototop.jpg) no-repeat; text-decoration: none; }
 a.gototop:hover { text-decoration: underline }
+*/
+.gototop {
+        position: absolute;
+        bottom: 0;            /* прижимаем к низу */
+        right: 0;             /* прижимаем к правому краю */
+        width: 140px;
+        height: 25px;
+        padding: 65px 10px 0 0;
+        background: url(/images/templatemo_gototop.jpg) no-repeat;
+}
+
+.arrow-icon {
+    width: 25px;
+    height: 25px;
+    transition: transform 0.3s;
+    position: relative;
+    top: -5px;
+    right: -120px;
+
+}
+
+.gototop:hover .arrow-icon {
+    transform: scale(1.2);
+}
 
 .col_w310 { width: 310px }
 

@@ -131,16 +131,32 @@
                         const row = document.createElement("tr");
                         row.innerHTML = `
                             <td >${person.id}</td>
-                            <td ><a href="/admin/user/${person.username}">${person.username}</a></td>
-                            <td >${person.email}</td>
-                            <td >${person.name}</td>
-                            <td >${person.surname}</td>
+                            <td ><a href="/admin/user/${person.username}">${escapeHtml(person.username)}</a></td>
+                            <td >${escapeHtml(person.email)}</td>
+                            <td >${escapeHtml(person.name)}</td>
+                            <td >${escapeHtml(person.surname)}</td>
                             <td >${person.birthdate}</td>
                             <td >${rolesData[person.id]}</td>
                         `;
                         tableBody.appendChild(row);
                     });
                 }
+
+                function escapeHtml(text) {
+                if (!text) return '';
+                console.log('escapeHtml input:', text);
+                const escaped = text.replace(/[&<>"']/g, function(m) {
+                    if (m === '&') return '&amp;';
+                    if (m === '<') return '&lt;';
+                    if (m === '>') return '&gt;';
+                    if (m === '"') return '&quot;';
+                    if (m === "'") return '&#39;';
+                    return m;
+                });
+                console.log('escapeHtml output:', escaped);
+                return escaped;
+            }
+
                 /*]]>*/
             </script>
             <div class="cleaner h80"></div>

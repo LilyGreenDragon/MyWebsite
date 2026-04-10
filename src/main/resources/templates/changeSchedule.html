@@ -351,6 +351,7 @@
             📚 Управление уроками
         </div>
         <div class="header-buttons">
+            <button class="btn" onclick="window.location.href='/messagesSchedule'">💬 Сообщения</button>
             <button class="btn" onclick="loadLessons()">🔄 Обновить</button>
         </div>
     </h1>
@@ -620,8 +621,9 @@
             console.error('Ошибка загрузки:', err);
             loading.style.display = 'none';
             tableError.style.display = 'block';
-            tableError.textContent = 'Не удалось загрузить уроки. ' + err.message;
-            tbody.innerHTML = '骨头<td colspan="7" style="text-align: center;">Ошибка загрузки</td> </tr>';
+            //tableError.textContent = 'Не удалось загрузить уроки. ' + err.message;
+            tableError.textContent = 'Не удалось загрузить уроки';
+            tbody.innerHTML = '<td colspan="7" style="text-align: center;">Ошибка загрузки</td> </tr>';
         }
     }
 
@@ -659,15 +661,17 @@
         tbody.innerHTML = html;
     }
 
-    function escapeHtml(text) {
-        if (!text) return '';
-        return text.replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
-    }
+   function escapeHtml(text) {
+    if (!text) return '';
+    return text.replace(/[&<>"']/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        if (m === '"') return '&quot;';
+        if (m === "'") return '&#39;';
+        return m;
+    });
+}
 
     // Создание урока
     async function createLesson() {
@@ -722,7 +726,8 @@
                 responseData = JSON.parse(responseText);
             } catch (e) {
                 console.error('❌ Ответ не JSON:', responseText.substring(0, 200));
-                showMessage('generalError', 'Ошибка сервера: ' + responseText.substring(0, 200), false);
+                //showMessage('generalError', 'Ошибка сервера: ' + responseText.substring(0, 200), false);
+                showMessage('generalError', 'Ошибка сервера' , false);
                 return;
             }
 
@@ -748,7 +753,8 @@
             }
         } catch (err) {
             console.error('❌ Ошибка создания:', err);
-            showMessage('generalError', 'Ошибка: ' + err.message, false);
+            //showMessage('generalError', 'Ошибка: ' + err.message, false);
+            showMessage('generalError', 'Ошибка соединения' , false);
         }
     }
 
@@ -788,10 +794,10 @@
         };
 
         const clientErrors = validateLesson(lessonData);
-        console.log('clientErrors:', clientErrors);  // ← добавить
-    console.log('clientErrors keys:', Object.keys(clientErrors).length);  // ← добавить
+        console.log('clientErrors:', clientErrors);
+    console.log('clientErrors keys:', Object.keys(clientErrors).length);
         if (Object.keys(clientErrors).length > 0) {
-        console.log('Показываем ошибки с префиксом "edit"');  // ← добавить
+        console.log('Показываем ошибки с префиксом "edit"');
             clearErrors('edit');
             showErrors(clientErrors, 'edit');
 
@@ -848,12 +854,15 @@
                   closeModal();
                   await loadLessons();
                 } else {
-                    showMessage('editGeneralError', responseData.message || 'Ошибка при обновлении урока', false);
+                    console.error('❌ Ошибка обновления:', responseData.message);
+                    //showMessage('editGeneralError', responseData.message || 'Ошибка при обновлении урока', false);
+                    showMessage('editGeneralError', 'Ошибка при обновлении урока', false);
                 }
             }
         } catch (err) {
-            console.error('Ошибка обновления:', err);
-            showMessage('editGeneralError', 'Ошибка: ' + err.message, false);
+            console.error('❌ Ошибка обновления:', err);
+            //showMessage('editGeneralError', 'Ошибка: ' + err.message, false);
+            showMessage('editGeneralError', 'Ошибка соединения' , false);
         }
     }
 
@@ -892,7 +901,8 @@
                 }
         } catch (err) {
             console.error('Ошибка удаления:', err);
-            showMessage('generalError', 'Ошибка: ' + err.message, false);
+            //showMessage('generalError', 'Ошибка: ' + err.message, false);
+            showMessage('generalError', 'Ошибка соединения' , false);
         }
     }
 

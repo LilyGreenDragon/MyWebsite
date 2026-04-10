@@ -313,6 +313,65 @@
         font-size: 16px;
     }
 
+/* Блок сообщений */
+.messages-container {
+  margin: 20px 20px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  border: 1px solid #e0e0e0;
+  overflow: hidden;
+}
+
+.messages-header {
+  background: #e1dc5e;
+  padding: 10px 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+  color: #333;
+
+}
+
+.messages-list {
+  //max-height: 200px;
+  overflow-y: auto;
+  padding: 10px;
+  background: #fff;
+}
+
+.message-item {
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 3px solid #e1dc5e;
+  word-wrap: break-word;
+  animation: fadeIn 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.message-text {
+  font-size: 13px;
+  color: #333;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.no-messages {
+  text-align: center;
+  color: #999;
+  padding: 10px;
+  font-style: italic;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
     @media (max-width: 600px) {
         h1 {
             flex-direction: column;
@@ -336,6 +395,7 @@
         .lesson-action-btn {
             width: 100%;
         }
+
     }
   </style>
 </head>
@@ -353,6 +413,19 @@
       <button class="btn" onclick="collapseAllDays()">🔼 Свернуть всё</button>
     </div>
   </h1>
+
+  <!-- Блок с сообщениями -->
+
+  <div class="messages-container">
+    <div class="messages-header">
+      <span>💬 Сообщения</span>
+        <span id="messagesConnectionStatus" class="connection-status">🟢</span>
+    </div>
+    <div id="messagesList" class="messages-list">
+      <div class="no-messages">Загрузка...</div>
+    </div>
+  </div>
+
 
   <!-- Кнопки переключения режимов -->
   <div class="view-toggle">
@@ -372,6 +445,10 @@
   <!-- Расписание -->
   <div class="schedule" id="scheduleContainer"></div>
 </div>
+
+
+<script src="/webjars/sockjs-client/sockjs.min.js"></script>
+<script src="/webjars/stomp-websocket/stomp.min.js"></script>
 
 <script>
 
@@ -729,9 +806,167 @@ async function toggleLesson(lessonId) {
       });
   }
 
+  // ========== БЛОК СООБЩЕНИЙ ==========
+let messagesStompClient = null;
+
+// Загрузка всех сообщений из БД
+async function loadAllMessages() {
+    try {
+        const response = await fetch('/REST/schedule/messages');
+        if (response.ok) {
+            const messages = await response.json();
+            displayMessagesList(messages);
+            console.log(`📚 Загружено ${messages.length} сообщений`);
+        } else {
+            console.error('Ошибка загрузки сообщений');
+            showMessagesError();
+        }
+    } catch (err) {
+        console.error('Ошибка загрузки сообщений:', err);
+        showMessagesError();
+    }
+}
+
+// Отображение списка сообщений
+function displayMessagesList(messages) {
+    const container = document.getElementById('messagesList');
+    if (!container) return;
+
+    if (!messages || messages.length === 0) {
+        container.innerHTML = '<div class="no-messages">📭 Пока нет сообщений</div>';
+        return;
+    }
+
+    let html = '';
+    messages.forEach(msg => {
+        html += `
+            <div class="message-item" data-message-id="${msg.id}">
+                <div class="message-text">✉️ ${escapeHtml(msg.textMessage)}</div>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+    container.scrollTop = container.scrollHeight;
+}
+
+// Добавление нового сообщения (приходит через WebSocket)
+function addNewMessageToList(message) {
+    const container = document.getElementById('messagesList');
+    if (!container) return;
+
+    if (container.querySelector('.no-messages')) {
+        container.innerHTML = '';
+    }
+
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message-item';
+    messageDiv.setAttribute('data-message-id', message.id);
+    messageDiv.innerHTML = `<div class="message-text">✉️ ${escapeHtml(message.textMessage)}</div>`;
+    container.appendChild(messageDiv);
+    container.scrollTop = container.scrollHeight;
+
+    console.log('📩 Новое сообщение получено через WebSocket');
+}
+
+// Удаление сообщения из списка по ID
+function removeMessageFromList(messageId) {
+    const container = document.getElementById('messagesList');
+    if (!container) return;
+
+    // Преобразуем messageId в число (если нужно)
+    const id = parseInt(messageId);
+
+    // Находим элемент с data-message-id
+    const messageElement = container.querySelector(`.message-item[data-message-id="${id}"]`);
+    if (messageElement) {
+        messageElement.remove();
+        console.log(`✅ Сообщение ${id} удалено из списка`);
+    }
+
+    // Если сообщений не осталось, показываем заглушку
+    if (container.children.length === 0) {
+        container.innerHTML = '<div class="no-messages">📭 Пока нет сообщений</div>';
+    }
+}
+
+// Обновление статуса подключения WebSocket
+function updateMessagesConnectionStatus(connected) {
+    const statusEl = document.getElementById('messagesConnectionStatus');
+    if (statusEl) {
+        if (connected) {
+            statusEl.textContent = '🟢';
+            statusEl.title = 'Подключено к WebSocket';
+        } else {
+            statusEl.textContent = '🔴';
+            statusEl.title = 'Отключено от WebSocket';
+        }
+    }
+}
+
+// Показать ошибку загрузки
+function showMessagesError() {
+    const container = document.getElementById('messagesList');
+    if (container && container.innerHTML === '') {
+        container.innerHTML = '<div class="no-messages">⚠️ Ошибка загрузки сообщений</div>';
+    }
+}
+
+// Подключение к WebSocket для получения сообщений
+function connectMessagesWebSocket() {
+    const socket = new SockJS('/ws/messages');
+    messagesStompClient = Stomp.over(socket);
+
+    const csrfToken = document.querySelector('meta[name="_csrf"]')?.content;
+    const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
+
+    const headers = {};
+    if (csrfToken && csrfHeader) {
+        headers[csrfHeader] = csrfToken;
+    }
+
+    messagesStompClient.connect(headers, function(frame) {
+        console.log('✅ Messages WebSocket connected');
+        updateMessagesConnectionStatus(true);
+
+        // Подписываемся на новые сообщения
+        messagesStompClient.subscribe('/topic/messages', function(message) {
+            const newMessage = JSON.parse(message.body);
+            addNewMessageToList(newMessage);
+        });
+
+        // ✅ Подписываемся на удаление сообщений
+        messagesStompClient.subscribe('/topic/messages/delete', function(message) {
+            const data = JSON.parse(message.body);
+            removeMessageFromList(data.id);
+            console.log('🗑️ Сообщение удалено:', data.id);
+        });
+
+    }, function(error) {
+        console.error('❌ Messages WebSocket error:', error);
+        updateMessagesConnectionStatus(false);
+    });
+}
+
+// Экранирование HTML (защита от XSS)
+function escapeHtml(text) {
+    if (!text) return '';
+    return text.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
+
   // Загружаем данные при загрузке страницы
   document.addEventListener('DOMContentLoaded', () => {
       loadAllDays();
+
+  // Загружаем сообщения
+    loadAllMessages();
+
+  // Подключаем WebSocket для получения новых сообщений
+    connectMessagesWebSocket();
   });
 
 // Быстрые клавиши (Esc, CTRL+Пробел, CTRL+F5)

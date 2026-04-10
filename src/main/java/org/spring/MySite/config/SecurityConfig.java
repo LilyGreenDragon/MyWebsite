@@ -86,7 +86,22 @@ public class SecurityConfig {
         return http
                 //.cors(withDefaults())
                 //.csrf(AbstractHttpConfigurer::disable)
-
+                /* .csrf(csrf -> csrf
+                        .ignoringRequestMatchers("/ws/messages/**")  // ← ОТКЛЮЧИТЬ CSRF ДЛЯ WEBSOCKET
+                )
+                 */
+                .headers(headers -> headers
+                        .frameOptions(frameOptions -> frameOptions.sameOrigin()) //сайт можно встраивать в <iframe> только на страницах с тем же доменом
+                        .contentSecurityPolicy(csp -> csp.policyDirectives(
+                                "default-src 'self'; " +
+                                        "script-src 'self' https://cdn.jsdelivr.net https://ajax.googleapis.com https://cdn.plyr.io 'unsafe-inline' 'unsafe-eval'; " +
+                                        "style-src 'self' https://cdn.jsdelivr.net https://cdn.plyr.io 'unsafe-inline'; " +
+                                        "img-src 'self' data:; " +
+                                        "media-src 'self' data: blob:; " +
+                                        "connect-src 'self' wss://192.168.0.60:8443; " +
+                                        "font-src 'self' data:"
+                        ))
+                )
                 /*.addFilterBefore(new RequestLoggerFilter(),
                 BasicAuthenticationFilter.class)*/
                 /*.addFilterBefore(new ResponseFilter(),
@@ -96,9 +111,10 @@ public class SecurityConfig {
 
                         .requestMatchers(HttpMethod.GET,"/", "/error","/js/**", "/css/**","/images/**","/imagecab/**", "/login", "/registration","/userIsAbsent","/access-denied", "/oauth2/**", "/expiredSession", "/blockedUser", "/authenticatedUser","/changeUsername").permitAll()
                         .requestMatchers(HttpMethod.POST, "/registration", "/login", "/oauth2/password").permitAll()
+                        .requestMatchers("/webjars/**", "/ws/messages/**").hasAnyAuthority( "USER", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/home","/myPage","/myPage/photo", "/myPage/mail", "/myPage/photo/delete", "/REST/**").hasAnyAuthority( "USER", "ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/REST/**").hasAnyAuthority( "USER", "ADMIN")
-                        .requestMatchers(HttpMethod.GET,"/home", "/myPage", "/photo", "/news", "/holiday", "/admin/adminIn","/myPage/photo","/dr2021","/video","/REST/**","/per","/param","/session","/schedule", "/changeSchedule").hasAnyAuthority( "USER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET,"/home", "/myPage", "/photo", "/news", "/holiday", "/admin/adminIn","/myPage/photo","/dr2021","/video","/REST/**","/per","/param","/session","/schedule", "/changeSchedule", "/messagesSchedule").hasAnyAuthority( "USER", "ADMIN")
                         .requestMatchers("/admin/**").hasAuthority("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/", "/REST/**").hasAnyAuthority( "USER", "ADMIN")
                         .dispatcherTypeMatchers(ERROR).permitAll()
