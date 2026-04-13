@@ -86,10 +86,10 @@ public class SecurityConfig {
         return http
                 //.cors(withDefaults())
                 //.csrf(AbstractHttpConfigurer::disable)
-                /* .csrf(csrf -> csrf
+                 .csrf(csrf -> csrf
                         .ignoringRequestMatchers("/ws/messages/**")  // ← ОТКЛЮЧИТЬ CSRF ДЛЯ WEBSOCKET
                 )
-                 */
+
                 .headers(headers -> headers
                         .frameOptions(frameOptions -> frameOptions.sameOrigin()) //сайт можно встраивать в <iframe> только на страницах с тем же доменом
                         .contentSecurityPolicy(csp -> csp.policyDirectives(
@@ -99,7 +99,8 @@ public class SecurityConfig {
                                         "img-src 'self' data:; " +
                                         "media-src 'self' data: blob:; " +
                                         "connect-src 'self' wss://192.168.0.60:8443; " +
-                                        "font-src 'self' data:"
+                                        "font-src 'self' data:" +
+                                        "frame-src 'self' "
                         ))
                 )
                 /*.addFilterBefore(new RequestLoggerFilter(),

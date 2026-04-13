@@ -42,6 +42,7 @@ import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.HtmlUtils;
 
 
 import javax.imageio.ImageIO;
@@ -298,25 +299,32 @@ public class PeopleController {
 
     @PostMapping("/myPage/mail")
     public String eMail(@Valid @ModelAttribute("person") Person person, BindingResult bindingResult, @P Person personMail) {
+        System.out.println("Вошли в метод отправки писем");
+
         if(bindingResult.hasErrors()) {
+            //return "redirect:/myPage?error=validation";
             return "indexMyPage"; }
 
         MimeMessage mimeMessage = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
-        String htmlMsg = person.getMessage();
-//mimeMessage.setContent(htmlMsg, "text/html"); /** Use this or below line **/
+        //String htmlMsg = person.getMessage();
+        // Экранируем опасные символы
+        String htmlMsg = HtmlUtils.htmlEscape(person.getMessage());
+        System.out.println("Сообщение: " + htmlMsg);
         try {
-            helper.setText(htmlMsg, true); // Use this or above line.
-            helper.setTo("egorchik_mail@mail.ru"); //Site14789
+            helper.setText(htmlMsg, false);
+            helper.setTo("egorchik_mail@mail.ru");
             helper.setSubject("Сообщение от " + personMail.getUsername()+ " "+ personMail.getEmail());
             helper.setFrom("egorchik_mail@mail.ru");
+            System.out.println("Отправляем письмо...");
+            mailSender.send(mimeMessage);
+            System.out.println("Письмо отправлено!");
         } catch (MessagingException e) {
             e.printStackTrace();
+            return "redirect:/myPage?error=mail";
         }
+        return "redirect:/myPage?success=mail";
 
-        mailSender.send(mimeMessage);
-
-        return "redirect:/myPage";
     }
 
     @PostMapping("/myPage/photo/delete")

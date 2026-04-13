@@ -416,7 +416,7 @@ public class RestScheduleController {
         }
     }
 
-    //Разобраться с эндпойнтами тут и в html, создать таблицу в бд
+
     @GetMapping("/messages")
     public ResponseEntity<List<Message>> getAllMessages() {
         List<Message> messages = messageRepository.findAll();

@@ -71,17 +71,15 @@
 
                     <label for="textMessage">Отправьте Егорчику сообщение:</label><div id="right" ><span style="float: right;" id="count" ></span></div>
                     <textarea id="textMessage" rows="0" cols="0" class="required" maxlength="200" th:field="*{message}"></textarea>
-                    <div style="color:orange; font-size:12px" th:if="${#fields.hasErrors('message')}" th:errors="*{message}">Message error</div>
+                    <!--<div style="color:orange; font-size:12px" th:if="${#fields.hasErrors('message')}" th:errors="*{message}">Message error</div>-->
                     <div class="cleaner h10"></div>
 
-                    <div id="loader" class="hidden" style="margin: 5px 0px; color: orange; font-size: 13px; font-family: Verdana, Arial, sans-serif;"></div>
+                    <div id="loader" ></div>
 
                     <input type="submit" class="submit_btn"  id="submitMessage" onclick="messageMail()"  value="Отправить" />
                     <input type="reset" class="submit_btn"  id="reset" onclick="reset()" value="Очистить" />
 
                 </form>
-
-
 
                     <script th:inline="javascript">
                         const message = document.getElementById("textMessage");

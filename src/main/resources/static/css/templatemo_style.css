@@ -292,7 +292,39 @@ font-size: 12px;
 color:orange;
 background-color: white;
 width: 300px
-
-
 }
+
+#loader {
+    margin: 5px 0px;
+    color: orange;
+    font-size: 13px;
+    font-family: Verdana, Arial, sans-serif;
+    padding: 10px;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+}
+
+#loader.hidden {
+    display: none;
+}
+
+#loader.success {
+    color: #155724;
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+}
+
+#loader.error {
+    color: #721c24;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+}
+
+#loader.info {
+    color: #856404;
+    background-color: #fff3cd;
+    border: 1px solid #ffeeba;
+}
+
+
 

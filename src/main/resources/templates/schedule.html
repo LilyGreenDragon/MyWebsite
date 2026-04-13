@@ -915,7 +915,7 @@ function showMessagesError() {
 function connectMessagesWebSocket() {
     const socket = new SockJS('/ws/messages');
     messagesStompClient = Stomp.over(socket);
-
+/*
     const csrfToken = document.querySelector('meta[name="_csrf"]')?.content;
     const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
 
@@ -925,6 +925,8 @@ function connectMessagesWebSocket() {
     }
 
     messagesStompClient.connect(headers, function(frame) {
+*/
+    messagesStompClient.connect({}, function(frame) {
         console.log('✅ Messages WebSocket connected');
         updateMessagesConnectionStatus(true);
 
@@ -948,12 +950,14 @@ function connectMessagesWebSocket() {
 }
 
 // Экранирование HTML (защита от XSS)
-function escapeHtml(text) {
+ function escapeHtml(text) {
     if (!text) return '';
-    return text.replace(/[&<>]/g, function(m) {
+    return text.replace(/[&<>"']/g, function(m) {
         if (m === '&') return '&amp;';
         if (m === '<') return '&lt;';
         if (m === '>') return '&gt;';
+        if (m === '"') return '&quot;';
+        if (m === "'") return '&#39;';
         return m;
     });
 }
@@ -961,9 +965,7 @@ function escapeHtml(text) {
   // Загружаем данные при загрузке страницы
   document.addEventListener('DOMContentLoaded', () => {
       loadAllDays();
-
-  // Загружаем сообщения
-    loadAllMessages();
+      loadAllMessages();
 
   // Подключаем WebSocket для получения новых сообщений
     connectMessagesWebSocket();

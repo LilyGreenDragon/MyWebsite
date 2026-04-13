@@ -32,6 +32,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpSession;
+import org.springframework.web.util.HtmlUtils;
 
 import java.util.HashMap;
 import java.util.List;
@@ -176,11 +177,12 @@ public class RestPeopleController {
 
         MimeMessage mimeMessage = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
-        String htmlMsg = person.getMessage();
-//mimeMessage.setContent(htmlMsg, "text/html"); /** Use this or below line **/
+        // Экранируем опасные символы
+        String htmlMsg = HtmlUtils.htmlEscape(person.getMessage());
+
         try {
-            helper.setText(htmlMsg, true); // Use this or above line.
-            helper.setTo("egorchik_mail@mail.ru"); //Site14789
+            helper.setText(htmlMsg, false);
+            helper.setTo("egorchik_mail@mail.ru");
             helper.setSubject("Сообщение от " + personMail.getUsername()+ " "+ personMail.getEmail());
             helper.setFrom("egorchik_mail@mail.ru");
         } catch (MessagingException e) {
