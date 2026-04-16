@@ -26,7 +26,7 @@ public class RegistrationService {
         this.modelMapper = modelMapper;
     }
 
-@Transactional
+    @Transactional
     public Person register(RegisterDTO registerDTO){
 
         Person person=registerDTOToPerson(registerDTO);

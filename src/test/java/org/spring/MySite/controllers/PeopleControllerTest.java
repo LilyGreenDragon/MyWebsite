@@ -12,7 +12,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.spring.MySite.models.Person;
 import org.spring.MySite.security.PersonDetails;
 import org.spring.MySite.services.PeopleService;
-import org.spring.MySite.util.PersonNotCreatedException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;

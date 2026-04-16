@@ -10,7 +10,7 @@ import org.spring.MySite.security.P;
 import org.spring.MySite.security.PersonDetails;
 import org.spring.MySite.services.PeopleService;
 import org.spring.MySite.util.PersonErrorResponse;
-import org.spring.MySite.util.PersonNotCreatedException;
+import org.spring.MySite.util.PersonValidationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
@@ -133,30 +133,36 @@ public class RestPeopleController {
     @PostMapping("/myPage")
     public ResponseEntity<?> updatePerson(@RequestBody @Valid Person person, BindingResult bindingResult, @P Person updatedPerson,
                                           Authentication authentication,HttpServletRequest request) {
+        try {
+            if (bindingResult.hasErrors()) {
+                //System.out.println("bindingResultUpdatePerson");
+                List<String> err = bindingResult.getAllErrors().stream()
+                        .map(DefaultMessageSourceResolvable::getDefaultMessage)
+                        .collect(Collectors.toList());
+                System.out.println(err);
 
-      if (bindingResult.hasErrors()) {
-            //System.out.println("bindingResultUpdatePerson");
-            List<String> err = bindingResult.getAllErrors().stream()
-                    .map(DefaultMessageSourceResolvable::getDefaultMessage)
-                    .collect(Collectors.toList());
-            System.out.println(err);
+                StringBuilder errorMessage = new StringBuilder();
+                List<FieldError> errors = bindingResult.getFieldErrors();
+                for (FieldError error : errors)
+                    errorMessage.append(error.getField()).append("-").append(error.getDefaultMessage()).append(";");
 
-            StringBuilder errorMessage = new StringBuilder();
-            List<FieldError> errors = bindingResult.getFieldErrors();
-            for(FieldError error: errors)
-                errorMessage.append(error.getField()).append("-").append(error.getDefaultMessage()).append(";");
+                throw new PersonValidationException(errorMessage.toString());
+            }
+            System.out.println(person);
+            updatedPerson.setName(person.getName());
+            updatedPerson.setSurname(person.getSurname());
+            updatedPerson.setBirthdate(person.getBirthdate());
+            peopleService.save(updatedPerson);
+            updateAllUserSessions(authentication);
 
-            throw new PersonNotCreatedException(errorMessage.toString());
+            //return ResponseEntity.ok("{\"success\": \"ok\"}");
+            return new ResponseEntity<>("The user was updated successfully", HttpStatus.OK);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Ошибка при обновлении: " + e.getMessage());
         }
-        System.out.println(person);
-        updatedPerson.setName(person.getName());
-        updatedPerson.setSurname(person.getSurname());
-        updatedPerson.setBirthdate(person.getBirthdate());
-        peopleService.save(updatedPerson);
-        updateAllUserSessions(authentication);
-
-        //return ResponseEntity.ok("{\"success\": \"ok\"}");
-        return new ResponseEntity<>("The user was updated successfully",HttpStatus.OK);
     }
 
     @PostMapping("/myPage/mail")
@@ -173,7 +179,7 @@ public class RestPeopleController {
             for(FieldError error: errors)
                 errorMessage.append(error.getField()).append("-").append(error.getDefaultMessage()).append(";");
 
-            throw new PersonNotCreatedException(errorMessage.toString());}
+            throw new PersonValidationException(errorMessage.toString());}
 
         MimeMessage mimeMessage = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
@@ -185,6 +191,7 @@ public class RestPeopleController {
             helper.setTo("egorchik_mail@mail.ru");
             helper.setSubject("Сообщение от " + personMail.getUsername()+ " "+ personMail.getEmail());
             helper.setFrom("egorchik_mail@mail.ru");
+            mailSender.send(mimeMessage);
         } catch (MessagingException e) {
             e.printStackTrace();
 
@@ -192,17 +199,22 @@ public class RestPeopleController {
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Ошибка при отправке письма: " + e.getMessage());
         }
-        mailSender.send(mimeMessage);
 
         return new ResponseEntity<>("The email has been sent",HttpStatus.OK);
     }
 
     @PostMapping("/myPage/photo/delete")
     public ResponseEntity<?> deletePhoto(@RequestBody Person person, @P Person updatedPerson,Authentication authentication,HttpServletRequest request) {
+        try {
         updatedPerson.setPhoto(person.getPhoto());
         peopleService.save(updatedPerson);
         updateAllUserSessions(authentication);
         return new ResponseEntity<>("The user was deleted successfully",HttpStatus.OK);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Ошибка при удалении фото: " + e.getMessage());
+        }
     }
 
     //Метод нужен если сессии хранятся в redis,работает когда у пользователя несколько сессий
@@ -236,13 +248,11 @@ public class RestPeopleController {
 
 // Для обработки PersonNotCreatedException во всех методах контроллера ( throw new PersonNotCreatedException(errorMessage.toString());})
     @ExceptionHandler
-    private ResponseEntity<PersonErrorResponse> handleException(PersonNotCreatedException e) {
+    private ResponseEntity<PersonErrorResponse> handleException(PersonValidationException e) {
         PersonErrorResponse response = new PersonErrorResponse(e.getMessage(), System.currentTimeMillis()
         );
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
 
     }
-
-
 
 }

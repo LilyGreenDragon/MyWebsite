@@ -42,9 +42,31 @@ public class MySiteApplication implements CommandLineRunner {
 		Optional<Person> person = peopleService.findByUsername("Tony");
 		System.out.println(person);
 		if (person.isEmpty()) {
-			Dictionary dictionary = dictionaryRepository.findById("password").get();
+			Dictionary dictionary = dictionaryRepository.findById("password").orElse(null);
+			if (dictionary == null) {
+				System.err.println("'password' не найден!");
+				return;
+			}
 			RegisterDTO adminDTO = new RegisterDTO("Tony", "1111", "tony@mail.ru", dictionary.getMeaning());
 			registrationService.registerAdmin(adminDTO);
 		}
 	}
 }
+
+
+//Чтобы добавить Tony и заполнить другие таблицы можно использовать DataInitializer(в отдельном файле)
+/*
+@Component                    //  Регистрируем как бин Spring
+public class DataInitializer implements CommandLineRunner {  //  Реализуем интерфейс
+
+	@Autowired               // Внедряем зависимости
+	private PeopleService peopleService;
+	//и так далее
+
+	@Override
+	@Transactional           // Добавляем транзакцию, если надо
+	public void run(String... args) throws Exception {  //  Реализуем метод
+		// код инициализации
+	}
+}
+*/

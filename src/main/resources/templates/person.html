@@ -81,15 +81,6 @@
 
             </form>
 
-          <!-- <script type="text/javascript">
-             $(function(){
-             var today = new Date();
-             var maxDate = today.toISOString().split('T')[0];
-   //var maxDate = new Date(new Date().getTime() – new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
-             $('#birthdate').attr('max', maxDate);
-             });
-
-             </script>-->
         </div>
       </div>
 
@@ -143,28 +134,13 @@
             success: function(data){
             console.log(data);
 
-            //var hours= new Date().getTimezoneOffset()/60;
-            //console.log(hours);
-            //const date = new Date(data.birthdate);
-            //console.log(date);
-
-function subtractHours(date, hours) {
-  date.setHours(date.getHours() - hours);
-  return date;
-}
-
-//const dateZone = subtractHours(date, hours);
-//var d=dateZone.toISOString();
-//console.log(d);
-
             $("#name").val(data.name);
             $("#surname").val(data.surname);
            // $("#birthdate").val(d.split('T')[0]);
             $("#birthdate").val(data.birthdate);
-            birthdatePicker.setDate(data.birthdate, true);
-            $("#hiddenField").val(data.photo);
-            //console.log(hiddenField);
-  base64src = document.getElementById("hiddenField").value;
+            birthdatePicker.setDate(data.birthdate, true); // Доступ к дате через API flatpickr
+
+  base64src = data.photo;
   dropBox.style.backgroundImage = "url('" + base64src + "')";
             },
             error: function(jqXHR,textStatus,errorThrown){
@@ -172,12 +148,6 @@ function subtractHours(date, hours) {
             }
        })
 
-         $(function(){
-            var today = new Date();
-            var maxDate = today.toISOString().split('T')[0];
-  //var maxDate = new Date(new Date().getTime() – new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
-            $('#birthdate').attr('max', maxDate);
-            });
 
   const name = document.getElementById("name");
   const surname = document.getElementById("surname");
@@ -230,26 +200,8 @@ function subtractHours(date, hours) {
                 birthdateError.textContent = "";
                 birthdateCorrect=true;
                 }
-                });*/
-
-// Доступ к дате через API flatpickr
-/*birthdate.addEventListener("input", function () {
-    const selectedDate = birthdatePicker.getDate(); // это Date-объект или null
-    const minDate = new Date(1920, 0, 1); // 1 января 1920
-    const today = new Date();
-
-    if (!selectedDate) {
-        birthdateError.textContent = "You entered a non-existent date";
-        birthdateCorrect = false;
-    } else if (selectedDate < minDate || selectedDate > today) {
-        birthdateError.textContent = "Date should be no earlier than 01.01.1920 and no later than today";
-        birthdateCorrect = false;
-    } else {
-        birthdateError.textContent = "";
-        birthdateCorrect = true;
-    }
-});*/
-birthdateCorrect = true;
+                });
+       */
 
        message.addEventListener("input",
                 function(event){
@@ -284,10 +236,11 @@ birthdateCorrect = true;
             },
             error: function(jqXHR,textStatus,errorThrown){
             console.log("Error:" + textStatus+"-"+errorThrown);
+            console.log("Response:", jqXHR.responseText);
             }
           })
           }
-          e.preventDefault();
+          e.preventDefault(); // ОТМЕНЯЕТ отправку формы и перезагрузку страницы
           //return false;
 
          });
@@ -325,11 +278,12 @@ var loader = document.getElementById('loader');
             },
             error: function(jqXHR,textStatus,errorThrown){
             console.log("Error:" + textStatus+"-"+errorThrown);
+            console.log("Response:", jqXHR.responseText);
             loader.classList.remove('success', 'error', 'info');
-             loader.classList.remove('hidden');
-             loader.classList.add('error');
-             loader.innerHTML="❌ Ошибка при отправке письма";
-             setTimeout(() => {
+            loader.classList.remove('hidden');
+            loader.classList.add('error');
+            loader.innerHTML="❌ Ошибка при отправке письма";
+            setTimeout(() => {
     loader.innerHTML = "";
     loader.classList.add('hidden');
 }, 2000);
@@ -348,10 +302,9 @@ var loader = document.getElementById('loader');
 
 dropBox.style.backgroundImage = "none";
 base64src = "";
-document.getElementById("hiddenField").setAttribute("value", base64src);
-            var jsonData={
-            "photo":$("#hiddenField").val()
-            };
+            var jsonData = {
+    "photo": base64src
+};
           console.log(jsonData);
           $.ajax({
             url: urlRequest+"/myPage/photo/delete",
@@ -368,6 +321,7 @@ document.getElementById("hiddenField").setAttribute("value", base64src);
             },
             error: function(jqXHR,textStatus,errorThrown){
             console.log("Error:" + textStatus+"-"+errorThrown);
+            console.log("Response:", jqXHR.responseText);
             }
           })
           e.preventDefault();

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://thymeleaf.org">
+<html lang="en" xmlns:th="http://thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
 <meta  content="text/html; charset=utf-8" />
 <title>Кабинетик</title>
@@ -25,7 +25,7 @@
             <ul>
                 <!--<li><a th:href="@{/home}">Дом</a></li>-->
                 <li class="last"><a th:href="@{/news}">Новости</a></li>
-                <li class="last"><a th:href="@{/per}">Человек</a></li>
+                <li class="last" sec:authorize="hasAuthority('ADMIN')"><a th:href="@{/per}">Человек</a></li>
             </ul>
         </div> <!-- end of templatemo_menu -->
 	</div> <!-- end of header -->
